@@ -8,7 +8,7 @@ export default function Navigation() {
           <div className="flex items-center">
             <Link href="/" className="flex items-center">
               <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-600">
-                LLMO
+                AmpUp
               </span>
             </Link>
           </div>
@@ -20,8 +20,17 @@ export default function Navigation() {
             <Link href="#how-it-works" className="text-gray-600 hover:text-gray-900">
               How It Works
             </Link>
+            <Link href="#pricing" className="text-gray-600 hover:text-gray-900">
+              Pricing
+            </Link>
             <Link href="#demo" className="text-gray-600 hover:text-gray-900">
               Demo
+            </Link>
+            <Link
+              href="/login"
+              className="text-gray-700 hover:text-gray-900 font-medium"
+            >
+              Login
             </Link>
             <a
               href="https://chrome.google.com/webstore"
@@ -29,6 +38,12 @@ export default function Navigation() {
             >
               Add to Chrome
             </a>
+            <Link
+              href="/signup"
+              className="px-4 py-2 rounded-full border-2 border-indigo-500 text-indigo-600 font-medium hover:bg-indigo-50 transition-all"
+            >
+              Sign Up
+            </Link>
           </div>
 
           <div className="md:hidden">

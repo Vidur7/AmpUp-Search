@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "LLMO Readiness Auditor",
+    "name": "AmpUp Optimization Auditor",
     "version": "0.1.0",
     "description": "Analyze and optimize web content for Large Language Models",
     "permissions": [

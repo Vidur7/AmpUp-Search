@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LLMO - LLM Optimization Analysis",
-  description: "Optimize your content for better AI understanding and visibility with LLMO's powerful analysis tools.",
+  title: "AmpUp - AI Optimization Analysis",
+  description: "Optimize your content for better AI understanding and visibility with AmpUp's powerful analysis tools.",
 };
 
 export default function RootLayout({

@@ -7,10 +7,10 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-2">
             <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-600">
-              LLMO
+              AmpUp
             </span>
             <p className="mt-4 text-gray-600 max-w-md">
-              Optimize your content for better AI understanding and visibility with LLMO&apos;s powerful analysis tools.
+              Optimize your content for better AI understanding and visibility with AmpUp&apos;s powerful analysis tools.
             </p>
           </div>
           
@@ -54,7 +54,7 @@ export default function Footer() {
         
         <div className="mt-8 pt-8 border-t border-gray-200">
           <p className="text-center text-gray-500">
-            © {new Date().getFullYear()} LLMO. All rights reserved.
+            © {new Date().getFullYear()} AmpUp. All rights reserved.
           </p>
         </div>
       </div>

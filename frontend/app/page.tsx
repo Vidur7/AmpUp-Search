@@ -1,5 +1,6 @@
 import Navigation from "./components/Navigation";
 import Footer from "./components/Footer";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -11,11 +12,11 @@ export default function Home() {
           <div className="max-w-7xl mx-auto">
             <div className="text-center">
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 tracking-tight">
-                Optimize Your Content for
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-600"> LLMs</span>
+                Optimize Your Content with
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-600"> AmpUp</span>
               </h1>
-              <p className="mt-6 max-w-2xl mx-auto text-lg sm:text-xl text-gray-600">
-                Analyze and enhance your content for better AI understanding. Get actionable insights and improve your content&apos;s visibility to Large Language Models.
+              <p className="mt-3 text-xl sm:text-2xl text-gray-600">
+                SEO for Large Language Models
               </p>
               <div className="mt-10 flex justify-center gap-4">
                 <a
@@ -25,22 +26,33 @@ export default function Home() {
                   Add to Chrome
                 </a>
                 <a
-                  href="#features"
+                  href="#how-it-works"
                   className="px-8 py-3 rounded-full border border-gray-300 text-gray-700 font-medium hover:border-gray-400 transition-all"
                 >
                   Learn More
                 </a>
               </div>
+              <p className="mt-6 text-center text-gray-600 text-lg">
+                One click to install. Instant insight into your AI-first visibility.
+              </p>
             </div>
           </div>
         </section>
 
         {/* Features Section */}
-        <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+        <section id="features" className="py-12 px-4 sm:px-6 lg:px-8 bg-white">
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-3xl font-bold text-center text-gray-900 mb-16">
-              Everything you need for LLM optimization
+            <h2 className="text-3xl font-bold text-center text-gray-700 mb-4">
+              Optimize Smarter. Grow Faster.
             </h2>
+            <h2 className="text-3xl font-bold text-center mb-16">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-600">AmpUp</span>
+              {' '}
+              <span className="text-gray-700">Like a Pro.</span>
+            </h2>
+            <p className="text-xl font-bold text-center text-gray-800 mb-16">
+              Stand out to Large Language Models in the AI-First World.
+            </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {features.map((feature, index) => (
                 <div key={index} className="p-6 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all">
@@ -56,10 +68,10 @@ export default function Home() {
         </section>
 
         {/* How It Works Section */}
-        <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
+        <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
           <div className="max-w-7xl mx-auto">
             <h2 className="text-3xl font-bold text-center text-gray-900 mb-16">
-              How LLMO Works
+              How <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-600">AmpUp</span> Works
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
               {steps.map((step, index) => (
@@ -79,7 +91,7 @@ export default function Home() {
         <section id="demo" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
           <div className="max-w-7xl mx-auto">
             <h2 className="text-3xl font-bold text-center text-gray-900 mb-16">
-              See LLMO in Action
+              See <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-600">AmpUp</span> in Action
             </h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div className="space-y-6">
@@ -87,7 +99,7 @@ export default function Home() {
                   Real-time Content Analysis
                 </h3>
                 <p className="text-gray-600">
-                  Watch how LLMO analyzes your content in real-time, providing actionable insights and recommendations for better AI optimization.
+                  Watch how AmpUp analyzes your content in real-time, providing actionable insights and recommendations for better AI optimization.
                 </p>
                 <div className="space-y-4">
                   <div className="flex items-start space-x-4">
@@ -128,6 +140,116 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* Pricing Section */}
+        <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">
+              Simple, Transparent Pricing
+            </h2>
+            <p className="text-xl text-center text-gray-600 mb-16">
+              Start optimizing your content for free. Upgrade when you're ready.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+              {/* Free Plan */}
+              <div className="rounded-2xl border-2 border-gray-200 p-8 hover:border-indigo-500 transition-all">
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">Free Plan</h3>
+                <p className="text-gray-600 mb-6">Perfect for getting started with AI optimization</p>
+                <div className="text-4xl font-bold text-gray-900 mb-6">
+                  $0 <span className="text-base font-normal text-gray-600">/month</span>
+                </div>
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-center text-gray-600">
+                    <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    5 detailed content analyses per month
+                  </li>
+                  <li className="flex items-center text-gray-600">
+                    <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Basic optimization recommendations
+                  </li>
+                  <li className="flex items-center text-gray-600">
+                    <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Chrome extension access
+                  </li>
+                </ul>
+                <Link
+                  href="/signup"
+                  className="block w-full py-3 px-4 rounded-full text-center bg-white border-2 border-indigo-500 text-indigo-600 font-medium hover:bg-indigo-50 transition-all"
+                >
+                  Get Started
+                </Link>
+              </div>
+
+              {/* Pro Plan */}
+              <div className="rounded-2xl border-2 border-indigo-500 p-8 bg-gradient-to-b from-white to-indigo-50 relative overflow-hidden">
+                <div className="absolute top-4 right-4 bg-indigo-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  Popular
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">Pro Plan</h3>
+                <p className="text-gray-600 mb-6">For professionals and growing businesses</p>
+                <div className="text-4xl font-bold text-gray-900 mb-6">
+                  $20 <span className="text-base font-normal text-gray-600">/month</span>
+                </div>
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-center text-gray-600">
+                    <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Unlimited detailed content analyses
+                  </li>
+                  <li className="flex items-center text-gray-600">
+                    <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Advanced AI optimization insights
+                  </li>
+                  <li className="flex items-center text-gray-600">
+                    <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Priority support
+                  </li>
+                  <li className="flex items-center text-gray-600">
+                    <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Export detailed reports
+                  </li>
+                  <li className="flex items-center text-gray-600">
+                    <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    API access
+                  </li>
+                </ul>
+                <Link
+                  href="/signup"
+                  className="block w-full py-3 px-4 rounded-full text-center bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium hover:shadow-lg transition-all"
+                >
+                  Upgrade to Pro
+                </Link>
+              </div>
+            </div>
+
+            <div className="mt-12 text-center">
+              <p className="text-gray-600">
+                All plans include our Chrome extension and basic content analysis features.
+                <br />
+                Need a custom plan for your enterprise?{' '}
+                <Link href="/contact" className="text-indigo-600 hover:text-indigo-700 font-medium">
+                  Contact us
+                </Link>
+              </p>
+            </div>
+          </div>
+        </section>
       </main>
       <Footer />
     </>
@@ -138,11 +260,11 @@ const features = [
   {
     icon: '🎯',
     title: 'Content Analysis',
-    description: 'Get detailed insights on how LLMs perceive and process your content.',
+    description: 'Get detailed insights on how AmpUp perceives and processes your content.',
   },
   {
     icon: '📊',
-    title: 'SEO for LLMs',
+    title: 'SEO for Large Language Models',
     description: 'Optimize your content specifically for better AI understanding and indexing.',
   },
   {
@@ -155,7 +277,7 @@ const features = [
 const steps = [
   {
     title: 'Install Extension',
-    description: 'Add LLMO to Chrome with a single click.',
+    description: 'Add AmpUp to Chrome with a single click.',
   },
   {
     title: 'Analyze Content',
