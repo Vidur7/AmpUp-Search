@@ -1,16 +1,21 @@
 # Core dependencies
-fastapi==0.104.1
-uvicorn==0.24.0
-pydantic==2.4.2
+fastapi>=0.109.0
+uvicorn
+pydantic>=2.4.2
 pydantic-settings==2.1.0
 python-dotenv==1.0.0
-beautifulsoup4==4.12.2
-python-multipart==0.0.6
-python-jose==3.3.0
+beautifulsoup4>=4.12.0
+python-multipart
+python-jose[cryptography]
 validators==0.22.0
 extruct==0.16.0
-lxml==4.9.3
+lxml
 httpx==0.25.2
+sqlalchemy
+psycopg2-binary
+passlib[bcrypt]
+email-validator
+aiohttp
 
 # Development dependencies
 black==23.11.0

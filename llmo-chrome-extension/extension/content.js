@@ -29,6 +29,7 @@ function clearOldCacheEntries() {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'analyze') {
         console.log('Content script received analyze request');
+        
         // Forward the analysis request to the background script
         chrome.runtime.sendMessage(
             { 
@@ -37,13 +38,46 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             },
             response => {
                 console.log('Received response from background:', response);
-                if (response.success) {
-                    const transformedData = transformApiResponse(response.data);
+                
+                // Handle error cases
+                if (!response) {
+                    console.error('No response from background script');
+                    sendResponse({ 
+                        success: false, 
+                        error: 'No response from analysis service' 
+                    });
+                    return;
+                }
+                
+                if (response.error) {
+                    console.error('Error from background script:', response.error);
+                    sendResponse({ 
+                        success: false, 
+                        error: response.error 
+                    });
+                    return;
+                }
+                
+                try {
+                    // Transform the API response
+                    const transformedData = transformApiResponse(response.data || response);
                     console.log('Transformed data:', transformedData);
-                    sendResponse({ success: true, data: transformedData });
-                } else {
-                    console.error('Error from background:', response.error);
-                    sendResponse({ success: false, error: response.error });
+                    
+                    // Validate the transformed data
+                    if (!isValidAnalysisData(transformedData)) {
+                        throw new Error('Invalid analysis data structure');
+                    }
+                    
+                    sendResponse({ 
+                        success: true, 
+                        data: transformedData 
+                    });
+                } catch (error) {
+                    console.error('Error transforming response:', error);
+                    sendResponse({ 
+                        success: false, 
+                        error: 'Error processing analysis results: ' + error.message 
+                    });
                 }
             }
         );
@@ -51,46 +85,55 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 });
 
-// Main analysis function
-async function analyzePage() {
-    try {
-        const url = window.location.href;
-        
-        // Check cache first
-        const cachedResult = window.LLMO_CACHE.get(url);
-        if (cachedResult) {
-            return cachedResult;
+// Validate analysis data structure
+function isValidAnalysisData(data) {
+    if (!data || typeof data !== 'object') return false;
+    
+    // Check required fields
+    const requiredFields = [
+        'overall_score',
+        'technical',
+        'structured',
+        'content',
+        'eeat'
+    ];
+    
+    for (const field of requiredFields) {
+        if (!(field in data)) {
+            console.error(`Missing required field: ${field}`);
+            return false;
         }
-        
-        return new Promise((resolve, reject) => {
-            chrome.runtime.sendMessage(
-                {
-                    action: 'analyze',
-                    url: url
-                },
-                async response => {
-                    if (response.success) {
-                        const transformedData = transformApiResponse(response.data);
-                        // Cache the result
-                        window.LLMO_CACHE.set(url, transformedData);
-                        resolve(transformedData);
-                    } else {
-                        reject(new Error(response.error));
-                    }
-                }
-            );
-        });
-    } catch (error) {
-        console.error('Analysis failed:', error);
-        return {
-            error: true,
-            message: error.message || 'Failed to analyze page. Please try again.'
-        };
     }
+    
+    // Check score types
+    if (typeof data.overall_score !== 'number') {
+        console.error('Invalid overall_score type');
+        return false;
+    }
+    
+    // Check section structures
+    const sections = ['technical', 'structured', 'content', 'eeat'];
+    for (const section of sections) {
+        const sectionData = data[section];
+        if (!sectionData || 
+            typeof sectionData.total_score !== 'number' || 
+            !Array.isArray(sectionData.issues)) {
+            console.error(`Invalid section structure: ${section}`);
+            return false;
+        }
+    }
+    
+    return true;
 }
 
 // Transform API response to match our UI needs
 function transformApiResponse(apiData) {
+    console.log('Transforming API response:', apiData);
+    
+    if (!apiData) {
+        throw new Error('No API data to transform');
+    }
+    
     return {
         overall_score: apiData.overall_score || 0,
         technical: {
@@ -110,7 +153,7 @@ function transformApiResponse(apiData) {
             issues: transformIssues(apiData.eeat?.issues || [], 'eeat')
         },
         timestamp: apiData.timestamp,
-        recommendations: apiData.recommendations
+        recommendations: apiData.recommendations || []
     };
 }
 

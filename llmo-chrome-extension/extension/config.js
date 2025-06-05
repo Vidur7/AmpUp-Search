@@ -2,7 +2,7 @@
 (function(global) {
     global.LLMO_CONFIG = {
         API: {
-            BASE_URL: 'http://localhost:8000/api/v1',
+            BASE_URL: 'http://localhost:8000',
             TIMEOUT: 15000, // 15 seconds in milliseconds
         },
         

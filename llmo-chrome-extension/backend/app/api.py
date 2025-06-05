@@ -88,3 +88,8 @@ async def analyze_webpage(request: AnalysisRequest) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Analysis failed for URL {request.url}: {str(e)}")
         return create_error_response(str(request.url), f"Analysis failed: {str(e)}")
+
+
+@router.get("/")
+async def root():
+    return {"message": "Welcome to AmpUp Search API"}

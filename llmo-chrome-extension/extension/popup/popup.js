@@ -85,24 +85,21 @@ async function startAnalysis(force = false) {
     try {
         const tab = await getCurrentTab();
         
-        // Ensure content script is injected
-        try {
-            await chrome.scripting.executeScript({
-                target: { tabId: tab.id },
-                files: ['config.js', 'content.js']
-            });
-        } catch (error) {
-            // If error is about the script already being injected, we can proceed
-            if (!error.message.includes('already exists')) {
-                console.error('Script injection error:', error);
-            }
-        }
-
         // Send message to content script to analyze the page
         chrome.tabs.sendMessage(tab.id, { action: 'analyze' }, (response) => {
             if (chrome.runtime.lastError) {
-                showError('Could not connect to page. Please refresh and try again.');
-                showResultsView(); // Show results view even on error
+                // If content script is not injected, inject it
+                chrome.scripting.executeScript({
+                    target: { tabId: tab.id },
+                    files: ['config.js', 'content.js']
+                }).then(() => {
+                    // Retry the analysis after injection
+                    chrome.tabs.sendMessage(tab.id, { action: 'analyze' }, handleAnalysisResponse);
+                }).catch(error => {
+                    console.error('Script injection error:', error);
+                    showError('Could not initialize analysis. Please refresh and try again.');
+                    showResultsView();
+                });
                 return;
             }
             
@@ -129,48 +126,89 @@ async function startAnalysis(force = false) {
 
 // Handle the analysis response
 function handleAnalysisResponse(response) {
+    console.log('Received analysis response:', response);
+    
     if (!response) {
-        showError('Invalid response data received.');
+        showError('No analysis data received from the server.');
+        return;
+    }
+    
+    // Check if response is an error object
+    if (response.error) {
+        showError(response.error);
+        return;
+    }
+    
+    // Check if response has the expected data structure
+    if (!response.data && !response.overall_score) {
+        console.error('Invalid response structure:', response);
+        showError('Invalid response format received from the server.');
         return;
     }
     
     try {
-        currentAnalysis = response;
-        updateUI(response);
+        // Use response.data if it exists (from content script), otherwise use response directly (from direct analysis)
+        const analysisData = response.data || response;
+        console.log('Processing analysis data:', analysisData);
+        
+        // Validate required fields
+        if (typeof analysisData.overall_score !== 'number') {
+            throw new Error('Missing or invalid overall score');
+        }
+        
+        currentAnalysis = analysisData;
+        updateUI(analysisData);
         showResultsView();
     } catch (error) {
-        showError('Error updating UI: ' + error.message);
-        console.error('UI update error:', error);
+        console.error('Error processing analysis data:', error);
+        showError('Error processing analysis results: ' + error.message);
     }
 }
 
 // Update the UI with analysis results
 function updateUI(analysis) {
-    updateOverallScore(analysis.overall_score);
-    updateSections(analysis);
+    console.log('Updating UI with analysis:', analysis);
     
-    // Add "View Full Analysis" button after sections
-    const container = document.querySelector('.analysis-sections');
-    const viewMoreButton = document.createElement('button');
-    viewMoreButton.className = 'btn btn-primary view-more-btn';
-    viewMoreButton.innerHTML = `
-        <span>View Detailed Analysis</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-        </svg>
-    `;
-    viewMoreButton.addEventListener('click', () => {
-        // Use localhost during development, will be updated to production URL before publishing
-        const websiteUrl = 'http://localhost:3000/analysis';
-        const encodedData = encodeURIComponent(JSON.stringify(currentAnalysis));
-        window.open(`${websiteUrl}?data=${encodedData}`, '_blank');
-    });
-    
-    // Add button container
-    const buttonContainer = document.createElement('div');
-    buttonContainer.className = 'view-more-container';
-    buttonContainer.appendChild(viewMoreButton);
-    container.appendChild(buttonContainer);
+    try {
+        updateOverallScore(analysis.overall_score);
+        updateSections(analysis);
+        
+        // Add "View Full Analysis" button after sections
+        const container = document.querySelector('.analysis-sections');
+        if (!container) {
+            throw new Error('Analysis sections container not found');
+        }
+        
+        // Remove existing view more button if present
+        const existingButton = container.querySelector('.view-more-container');
+        if (existingButton) {
+            existingButton.remove();
+        }
+        
+        const viewMoreButton = document.createElement('button');
+        viewMoreButton.className = 'btn btn-primary view-more-btn';
+        viewMoreButton.innerHTML = `
+            <span>View Detailed Analysis</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+        `;
+        
+        viewMoreButton.addEventListener('click', () => {
+            const websiteUrl = 'http://localhost:3000/analysis';
+            const encodedData = encodeURIComponent(JSON.stringify(currentAnalysis));
+            window.open(`${websiteUrl}?data=${encodedData}`, '_blank');
+        });
+        
+        // Add button container
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'view-more-container';
+        buttonContainer.appendChild(viewMoreButton);
+        container.appendChild(buttonContainer);
+    } catch (error) {
+        console.error('Error updating UI:', error);
+        showError('Failed to update display: ' + error.message);
+    }
 }
 
 // Update the overall score display
