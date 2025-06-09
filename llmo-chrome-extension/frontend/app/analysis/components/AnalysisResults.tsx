@@ -31,7 +31,26 @@ interface AnalysisData {
   };
   recommendations: string[];
   timestamp: string;
+  usage?: {
+    analysis_count: number;
+    full_views_used: number;
+  };
 }
+
+// Component to show blurred content with upgrade prompt
+const BlurredSection = () => (
+  <div className="relative">
+    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center">
+      <p className="text-gray-800 font-semibold mb-4">Upgrade to see detailed analysis</p>
+      <button
+        onClick={() => window.open('https://ampup.ai/pricing', '_blank')}
+        className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+      >
+        Upgrade Now
+      </button>
+    </div>
+  </div>
+);
 
 export default function AnalysisResults() {
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
@@ -72,6 +91,13 @@ export default function AnalysisResults() {
     return 'text-red-600';
   };
 
+  // Check if user has exceeded free view limits
+  const hasExceededFreeViews = analysisData.usage && analysisData.usage.full_views_used >= 2;
+  const hasExceededAnalysis = analysisData.usage && analysisData.usage.analysis_count >= 5;
+
+  // Determine which sections to blur
+  const shouldBlurDetails = hasExceededFreeViews || hasExceededAnalysis;
+
   return (
     <div className="space-y-8">
       {/* URL and Overall Score */}
@@ -93,7 +119,9 @@ export default function AnalysisResults() {
       </div>
 
       {/* Analysis Sections */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
+        {shouldBlurDetails && <BlurredSection />}
+        
         {/* Technical Analysis */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Technical Analysis</h3>
@@ -219,8 +247,9 @@ export default function AnalysisResults() {
         </div>
       </div>
 
-      {/* Recommendations */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
+      {/* Recommendations - Also blur if exceeded limits */}
+      <div className="bg-white rounded-lg shadow-sm p-6 relative">
+        {shouldBlurDetails && <BlurredSection />}
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Key Recommendations</h3>
         <ul className="space-y-2">
           {analysisData.recommendations.map((recommendation, index) => (

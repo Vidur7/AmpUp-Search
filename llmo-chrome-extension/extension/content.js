@@ -134,6 +134,18 @@ function transformApiResponse(apiData) {
         throw new Error('No API data to transform');
     }
     
+    // Debug the structure
+    console.log('API data structure check:', {
+        hasOverallScore: 'overall_score' in apiData,
+        hasCrawlability: 'crawlability' in apiData,
+        hasStructuredData: 'structured_data' in apiData,
+        hasContentStructure: 'content_structure' in apiData,
+        hasEeat: 'eeat' in apiData,
+        crawlabilityType: apiData.crawlability ? typeof apiData.crawlability : 'undefined',
+        structuredDataType: apiData.structured_data ? typeof apiData.structured_data : 'undefined'
+    });
+    
+    // Map crawlability to technical for the UI
     return {
         overall_score: apiData.overall_score || 0,
         technical: {
@@ -152,7 +164,7 @@ function transformApiResponse(apiData) {
             total_score: apiData.eeat?.total_score || 0,
             issues: transformIssues(apiData.eeat?.issues || [], 'eeat')
         },
-        timestamp: apiData.timestamp,
+        timestamp: apiData.timestamp || new Date().toISOString(),
         recommendations: apiData.recommendations || []
     };
 }

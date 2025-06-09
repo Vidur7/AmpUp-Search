@@ -2,7 +2,7 @@
 const LLMO_CONFIG = {
     API: {
         BASE_URL: 'http://localhost:8000/api/v1',
-        TIMEOUT: 15000, // 15 seconds in milliseconds
+        TIMEOUT: 30000, // 30 seconds in milliseconds
     },
     
     CACHE: {

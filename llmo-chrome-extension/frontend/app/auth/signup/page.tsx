@@ -1,15 +1,47 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { v4 as uuidv4 } from 'uuid';
+
+const API_BASE_URL = 'http://localhost:8000/api/v1';
 
 export default function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [anonymousId, setAnonymousId] = useState('');
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    // Generate a random anonymous ID if not in extension
+    const getAnonymousId = async () => {
+      try {
+        // Check if we're in the extension environment
+        if (typeof chrome !== 'undefined' && chrome.storage) {
+          const result = await chrome.storage.local.get(['anonymousId']);
+          if (result.anonymousId) {
+            setAnonymousId(result.anonymousId);
+            return;
+          }
+        }
+        // If not in extension or no stored ID, generate a new one
+        const newId = uuidv4();
+        setAnonymousId(newId);
+      } catch (err) {
+        console.error('Error getting anonymous ID:', err);
+        const newId = uuidv4();
+        setAnonymousId(newId);
+      }
+    };
+
+    getAnonymousId();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -18,7 +50,64 @@ export default function SignUp() {
       return;
     }
 
-    // Add your signup logic here
+    if (!anonymousId) {
+      setError('Anonymous ID not generated. Please try again.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Signup request
+      const signupData = {
+        email,
+        password,
+        anonymous_id: anonymousId,
+        is_premium: false,
+      };
+
+      const signupResponse = await fetch(`${API_BASE_URL}/auth/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(signupData),
+        credentials: 'include',
+      });
+
+      if (!signupResponse.ok) {
+        const data = await signupResponse.json();
+        throw new Error(data.detail || 'Failed to create account');
+      }
+
+      // Sign in request
+      const formData = new URLSearchParams();
+      formData.append('username', email);
+      formData.append('password', password);
+
+      const signInResponse = await fetch(`${API_BASE_URL}/auth/signin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!signInResponse.ok) {
+        throw new Error('Failed to sign in after account creation');
+      }
+
+      const signInData = await signInResponse.json();
+      localStorage.setItem('token', signInData.access_token);
+      localStorage.setItem('user', JSON.stringify(signInData.user));
+
+      router.push('/dashboard');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -34,7 +123,7 @@ export default function SignUp() {
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           Already have an account?{' '}
-          <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+          <Link href="/auth/signin" className="font-medium text-indigo-600 hover:text-indigo-500">
             Sign in
           </Link>
         </p>
@@ -106,9 +195,10 @@ export default function SignUp() {
             <div>
               <button
                 type="submit"
+                disabled={loading}
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
-                Sign up
+                {loading ? 'Creating account...' : 'Sign up'}
               </button>
             </div>
           </form>

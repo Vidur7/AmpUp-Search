@@ -6,10 +6,19 @@ from uuid import UUID
 
 class UserBase(BaseModel):
     email: EmailStr
+    anonymous_id: str
+    is_premium: bool = False
 
 
 class UserCreate(UserBase):
     password: str
+
+
+class UserResponse(UserBase):
+    id: str
+
+    class Config:
+        from_attributes = True
 
 
 class User(UserBase):
@@ -48,9 +57,10 @@ class AnonymousUsageCheck(BaseModel):
     full_views_used: int
 
 
-class Token(BaseModel):
+class TokenResponse(BaseModel):
     access_token: str
     token_type: str
+    user: UserResponse
 
 
 class TokenData(BaseModel):
@@ -62,11 +72,19 @@ class AnalysisRequest(BaseModel):
 
 
 class AnalysisResponse(BaseModel):
+    id: str
     url: str
     overall_score: float
-    crawlability: Dict[str, Any]
-    structured_data: Dict[str, Any]
-    content_structure: Dict[str, Any]
-    eeat: Dict[str, Any]
-    recommendations: List[str]
     timestamp: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class UsageStatsResponse(BaseModel):
+    analysis_count: int
+    full_views_used: int
+    is_premium: bool
+
+    class Config:
+        from_attributes = True

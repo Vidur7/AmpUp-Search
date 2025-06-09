@@ -27,10 +27,10 @@ export default function Navigation() {
               Demo
             </Link>
             <Link
-              href="/login"
+              href="/auth/signin"
               className="text-gray-700 hover:text-gray-900 font-medium"
             >
-              Login
+              Sign In
             </Link>
             <a
               href="https://chrome.google.com/webstore"
@@ -39,7 +39,7 @@ export default function Navigation() {
               Add to Chrome
             </a>
             <Link
-              href="/signup"
+              href="/auth/signup"
               className="px-4 py-2 rounded-full border-2 border-indigo-500 text-indigo-600 font-medium hover:bg-indigo-50 transition-all"
             >
               Sign Up

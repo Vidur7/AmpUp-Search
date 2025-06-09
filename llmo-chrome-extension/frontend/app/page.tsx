@@ -180,7 +180,7 @@ export default function Home() {
                   </li>
                 </ul>
                 <Link
-                  href="/signup"
+                  href="/auth/signup"
                   className="block w-full py-3 px-4 rounded-full text-center bg-white border-2 border-indigo-500 text-indigo-600 font-medium hover:bg-indigo-50 transition-all"
                 >
                   Get Started
@@ -230,7 +230,7 @@ export default function Home() {
                   </li>
                 </ul>
                 <Link
-                  href="/signup"
+                  href="/auth/signup"
                   className="block w-full py-3 px-4 rounded-full text-center bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium hover:shadow-lg transition-all"
                 >
                   Upgrade to Pro

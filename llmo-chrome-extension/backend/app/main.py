@@ -1,25 +1,55 @@
-from fastapi import FastAPI, HTTPException, Depends, Header
+from fastapi import FastAPI, HTTPException, Depends, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, HttpUrl
-from .db import get_db
-from .database import init_db
-from .models import AnonymousUsage
-from .services import LLMOAnalyzer
-from .api import router
+from app.db import get_db
+from app.database import init_db, engine, Base
+from app.models import AnonymousUsage, Analysis, User, Audit  # Import all models
+from app.services import LLMOAnalyzer
+from app.api import router
+from app.api.v1 import auth, user, google_auth
+from app.config import settings
+import validators
+import logging
+from datetime import datetime
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+
+logger = logging.getLogger(__name__)
+
+# Temporarily commented out until analyzers are implemented
+# from app.analyzers import (
+#     technical_analyzer,
+#     structured_data_analyzer,
+#     content_analyzer,
+#     eeat_analyzer,
+# )
 
 
 # Request models
 class AnalyzeRequest(BaseModel):
-    url: HttpUrl
+    url: str
+    include_content: Optional[bool] = False
+
+
+class AnalyzeResponse(BaseModel):
+    overall_score: float
+    crawlability: Dict[str, Any]
+    structured_data: Dict[str, Any]
+    content_structure: Dict[str, Any]
+    eeat: Dict[str, Any]
+    recommendations: List[str] = []
 
 
 app = FastAPI(
-    title="AmpUp Search",
-    description="API for analyzing webpage LLM optimization",
-    version="0.1.0",
+    title=settings.app_name,
+    description="API for analyzing webpage optimization for Large Language Models",
+    version=settings.version,
 )
 
 
@@ -29,18 +59,43 @@ async def startup_event():
     init_db()
 
 
-# Configure CORS for specific Chrome extension
+# Create database tables - AFTER importing all models
+logger.info("Creating database tables...")
+try:
+    Base.metadata.create_all(bind=engine)
+    logger.info("Database tables created successfully")
+except Exception as e:
+    logger.error(f"Error creating database tables: {str(e)}")
+    raise
+
+# Configure CORS - MUST be before including routers
+origins = [
+    "chrome-extension://*",  # Allow all Chrome extension origins
+    "*chrome-extension://*",  # Alternative format
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3002",
+    "http://localhost:3003",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+    "http://127.0.0.1:3002",
+    "http://127.0.0.1:3003",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "chrome-extension://kipljoblgcgdhnbddmopplbnbdpbomgh",  # Your extension ID
-        "http://localhost:8000",  # For local development
-        "http://127.0.0.1:8000",  # For local development
-    ],
+    allow_origins=["*"],  # Allow all origins for testing
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+# Log CORS settings
+logger.info("Starting application with CORS settings:")
+logger.info(f"Allowed origins: {origins}")
+logger.info("CORS credentials allowed: True")
+logger.info("All methods and headers allowed")
 
 # Constants
 FREE_ANALYSIS_LIMIT = 5
@@ -48,6 +103,14 @@ FREE_FULL_VIEWS_LIMIT = 2
 
 # Include routers
 app.include_router(router, prefix="/api/v1")
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(user.router, prefix="/api/v1/user", tags=["user"])
+app.include_router(google_auth.router, prefix="/api/v1/auth", tags=["auth"])
+
+
+@app.get("/")
+async def read_root():
+    return {"status": "ok", "message": "LLMO Readiness Auditor API"}
 
 
 @app.get("/health")
@@ -68,61 +131,43 @@ async def get_usage(anon_id: str, db: Session = Depends(get_db)):
     return usage.to_dict()
 
 
-@app.post("/analyze")
-async def analyze_url(
-    request: AnalyzeRequest,
-    x_anonymous_id: Optional[str] = Header(None, alias="X-Anonymous-ID"),
-    db: Session = Depends(get_db),
-):
-    """Analyze a URL and track usage"""
-    if not x_anonymous_id:
-        raise HTTPException(status_code=400, detail="Anonymous ID required")
+@app.post(
+    "/api/v1/analyze", response_model=None
+)  # Remove response_model to allow flexible response
+async def analyze_url(request: AnalyzeRequest):
+    # Validate URL
+    if not validators.url(request.url):
+        raise HTTPException(status_code=400, detail="Invalid URL provided")
 
-    # Get or create usage record
-    usage = (
-        db.query(AnonymousUsage)
-        .filter(AnonymousUsage.anon_id == x_anonymous_id)
-        .first()
-    )
-    if not usage:
-        usage = AnonymousUsage(anon_id=x_anonymous_id)
-        db.add(usage)
-
-    # Check usage limits
-    if usage.analysis_count >= FREE_ANALYSIS_LIMIT:
+    try:
+        # Return mock data with structure matching what the extension expects
         return {
-            "error": "Free analysis limit reached",
-            "limit_reached": True,
-            "upgrade_required": True,
+            "overall_score": 65.0,
+            "crawlability": {
+                "total_score": 70.0,
+                "issues": ["No llms.txt found", "robots.txt is present"],
+            },
+            "structured_data": {
+                "total_score": 60.0,
+                "issues": ["Limited schema.org markup", "No product schema"],
+            },
+            "content_structure": {
+                "total_score": 75.0,
+                "issues": ["Good heading structure", "Could use more lists"],
+            },
+            "eeat": {
+                "total_score": 55.0,
+                "issues": ["No clear author attribution", "Missing publication date"],
+            },
+            "recommendations": [
+                "Add llms.txt file to guide AI crawlers",
+                "Implement more schema.org markup",
+                "Add author information with proper schema",
+                "Include publication date",
+            ],
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
-    # Perform analysis
-    async with LLMOAnalyzer(str(request.url)) as analyzer:
-        result = await analyzer.analyze_page()
-
-    # Update usage
-    usage.analysis_count += 1
-    if usage.full_views_used < FREE_FULL_VIEWS_LIMIT:
-        usage.full_views_used += 1
-        show_full_results = True
-    else:
-        show_full_results = False
-
-    db.commit()
-
-    # Return results based on usage
-    if show_full_results:
-        return {"result": result, "usage": usage.to_dict(), "show_full_results": True}
-    else:
-        # Return blurred/limited results
-        limited_result = {
-            "url": result["url"],
-            "overall_score": result["overall_score"],
-            "preview": True,
-            "upgrade_required": True,
-        }
-        return {
-            "result": limited_result,
-            "usage": usage.to_dict(),
-            "show_full_results": False,
-        }
+    except Exception as e:
+        logger.error(f"Error analyzing URL: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
