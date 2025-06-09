@@ -37,6 +37,10 @@ interface AnalysisData {
   };
 }
 
+interface AnalysisResultsProps {
+  activeTab?: 'analysis' | 'recommendations';
+}
+
 // Component to show blurred content with upgrade prompt
 const BlurredSection = () => (
   <div className="relative">
@@ -44,7 +48,7 @@ const BlurredSection = () => (
       <p className="text-gray-800 font-semibold mb-4">Upgrade to see detailed analysis</p>
       <button
         onClick={() => window.open('https://ampup.ai/pricing', '_blank')}
-        className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+        className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 rounded-md hover:shadow-lg transition-all"
       >
         Upgrade Now
       </button>
@@ -52,25 +56,83 @@ const BlurredSection = () => (
   </div>
 );
 
-export default function AnalysisResults() {
+export default function AnalysisResults({ activeTab = 'analysis' }: AnalysisResultsProps) {
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const data = searchParams.get('data');
-    if (data) {
-      try {
-        const decodedData = JSON.parse(decodeURIComponent(data));
-        setAnalysisData(decodedData);
-      } catch (err) {
-        setError('Invalid analysis data');
-        console.error('Error parsing analysis data:', err);
+    const fetchAnalysisData = async () => {
+      setLoading(true);
+      
+      // First check if data is passed directly in URL
+      const data = searchParams.get('data');
+      if (data) {
+        try {
+          const decodedData = JSON.parse(decodeURIComponent(data));
+          setAnalysisData(decodedData);
+          setError(null);
+        } catch (err) {
+          setError('Invalid analysis data');
+          console.error('Error parsing analysis data:', err);
+        } finally {
+          setLoading(false);
+        }
+        return;
       }
-    } else {
-      setError('No analysis data provided');
-    }
+      
+      // If not, check if there's an ID to fetch from API
+      const id = searchParams.get('id');
+      if (id) {
+        try {
+          const token = localStorage.getItem('token');
+          const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+          };
+          
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
+          
+          const response = await fetch(`http://localhost:8000/api/v1/analyses/${id}`, {
+            headers,
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to fetch analysis: ${response.statusText}`);
+          }
+          
+          const analysisData = await response.json();
+          setAnalysisData(analysisData);
+          setError(null);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Failed to load analysis data');
+          console.error('Error fetching analysis:', err);
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+      
+      setError('No analysis data or ID provided');
+      setLoading(false);
+    };
+
+    fetchAnalysisData();
   }, [searchParams]);
+
+  if (loading) {
+    return (
+      <div className="animate-pulse space-y-6">
+        <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="h-64 bg-gray-200 rounded"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   if (error) {
     return (
@@ -91,6 +153,12 @@ export default function AnalysisResults() {
     return 'text-red-600';
   };
 
+  const getScoreBgColor = (score: number) => {
+    if (score >= 80) return 'bg-gradient-to-r from-green-400 to-green-600';
+    if (score >= 60) return 'bg-gradient-to-r from-yellow-400 to-yellow-600';
+    return 'bg-gradient-to-r from-red-400 to-red-600';
+  };
+
   // Check if user has exceeded free view limits
   const hasExceededFreeViews = analysisData.usage && analysisData.usage.full_views_used >= 2;
   const hasExceededAnalysis = analysisData.usage && analysisData.usage.analysis_count >= 5;
@@ -98,22 +166,78 @@ export default function AnalysisResults() {
   // Determine which sections to blur
   const shouldBlurDetails = hasExceededFreeViews || hasExceededAnalysis;
 
-  return (
-    <div className="space-y-8">
-      {/* URL and Overall Score */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
+  // Extract all recommendations from issues
+  const allRecommendations: string[] = [
+    ...analysisData.recommendations,
+    ...analysisData.technical.issues
+      .filter(issue => issue.recommendation)
+      .map(issue => issue.recommendation as string),
+    ...analysisData.structured.issues
+      .filter(issue => issue.recommendation)
+      .map(issue => issue.recommendation as string),
+    ...analysisData.content.issues
+      .filter(issue => issue.recommendation)
+      .map(issue => issue.recommendation as string),
+    ...analysisData.eeat.issues
+      .filter(issue => issue.recommendation)
+      .map(issue => issue.recommendation as string)
+  ];
+
+  // Remove duplicates
+  const uniqueRecommendations = [...new Set(allRecommendations)];
+
+  if (activeTab === 'recommendations') {
+    return (
+      <div className="space-y-8">
+        {/* URL and Overall Score */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Analysis Results</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Recommendations</h2>
             {analysisData.url && (
               <p className="text-gray-600 mt-1">{analysisData.url}</p>
             )}
           </div>
           <div className="text-center">
-            <div className={`text-3xl font-bold ${getScoreColor(analysisData.overall_score)}`}>
+            <div className={`w-16 h-16 rounded-full ${getScoreBgColor(analysisData.overall_score)} flex items-center justify-center text-white font-bold text-xl`}>
               {Math.round(analysisData.overall_score)}%
             </div>
-            <div className="text-sm text-gray-500">Overall Score</div>
+          </div>
+        </div>
+
+        {/* Recommendations Section */}
+        <div className="relative">
+          {shouldBlurDetails && <BlurredSection />}
+          <div className="space-y-6">
+            {uniqueRecommendations.map((recommendation, index) => (
+              <div key={index} className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-indigo-500">
+                <p className="text-gray-800">{recommendation}</p>
+              </div>
+            ))}
+            
+            {uniqueRecommendations.length === 0 && (
+              <div className="bg-white rounded-lg shadow-sm p-6 text-center">
+                <p className="text-gray-600">No recommendations available for this analysis.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* URL and Overall Score */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Analysis Results</h2>
+          {analysisData.url && (
+            <p className="text-gray-600 mt-1">{analysisData.url}</p>
+          )}
+        </div>
+        <div className="text-center">
+          <div className={`w-16 h-16 rounded-full ${getScoreBgColor(analysisData.overall_score)} flex items-center justify-center text-white font-bold text-xl`}>
+            {Math.round(analysisData.overall_score)}%
           </div>
         </div>
       </div>
@@ -141,11 +265,6 @@ export default function AnalysisResults() {
                       <span>{issue.type === 'check-fail' ? '❌' : '✓'}</span>
                       <span>{issue.text}</span>
                     </div>
-                    {issue.recommendation && (
-                      <p className="ml-6 mt-1 text-sm text-blue-600">
-                        Recommendation: {issue.recommendation}
-                      </p>
-                    )}
                   </li>
                 ))}
               </ul>
@@ -172,11 +291,6 @@ export default function AnalysisResults() {
                       <span>{issue.type === 'check-fail' ? '❌' : '✓'}</span>
                       <span>{issue.text}</span>
                     </div>
-                    {issue.recommendation && (
-                      <p className="ml-6 mt-1 text-sm text-blue-600">
-                        Recommendation: {issue.recommendation}
-                      </p>
-                    )}
                   </li>
                 ))}
               </ul>
@@ -203,11 +317,6 @@ export default function AnalysisResults() {
                       <span>{issue.type === 'check-fail' ? '❌' : '✓'}</span>
                       <span>{issue.text}</span>
                     </div>
-                    {issue.recommendation && (
-                      <p className="ml-6 mt-1 text-sm text-blue-600">
-                        Recommendation: {issue.recommendation}
-                      </p>
-                    )}
                   </li>
                 ))}
               </ul>
@@ -234,31 +343,12 @@ export default function AnalysisResults() {
                       <span>{issue.type === 'check-fail' ? '❌' : '✓'}</span>
                       <span>{issue.text}</span>
                     </div>
-                    {issue.recommendation && (
-                      <p className="ml-6 mt-1 text-sm text-blue-600">
-                        Recommendation: {issue.recommendation}
-                      </p>
-                    )}
                   </li>
                 ))}
               </ul>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Recommendations - Also blur if exceeded limits */}
-      <div className="bg-white rounded-lg shadow-sm p-6 relative">
-        {shouldBlurDetails && <BlurredSection />}
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Key Recommendations</h3>
-        <ul className="space-y-2">
-          {analysisData.recommendations.map((recommendation, index) => (
-            <li key={index} className="flex items-start gap-2 text-gray-600">
-              <span className="text-indigo-500">•</span>
-              <span>{recommendation}</span>
-            </li>
-          ))}
-        </ul>
       </div>
 
       {/* Timestamp */}

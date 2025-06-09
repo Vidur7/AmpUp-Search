@@ -1,8 +1,12 @@
 export default function LoadingAnalysis() {
   return (
-    <div className="flex flex-col items-center justify-center py-12">
-      <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-      <p className="mt-4 text-gray-600">Loading analysis results...</p>
+    <div className="animate-pulse space-y-6">
+      <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="h-64 bg-gray-200 rounded"></div>
+        <div className="h-64 bg-gray-200 rounded"></div>
+      </div>
+      <div className="h-64 bg-gray-200 rounded"></div>
     </div>
   );
 } 
