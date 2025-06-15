@@ -30,13 +30,33 @@ class BaseAnalyzer:
             raise
 
     def _calculate_score(self, checks: List[Dict[str, Any]]) -> float:
-        """Calculate score based on passed/failed checks"""
+        """Calculate score based on check types with weighted scoring"""
         if not checks:
             return 0.0
 
-        passed = sum(1 for check in checks if check.get("type") == "check-pass")
-        total = len(checks)
-        return round((passed / total) * 100, 2)
+        # Define weights for different check types
+        weights = {
+            "check-pass": 1.0,  # Full points for passing checks
+            "check-warn": 0.5,  # Half points for warnings
+            "check-fail": 0.0,  # No points for failures
+        }
+
+        # Calculate weighted score
+        total_weight = 0
+        earned_weight = 0
+
+        for check in checks:
+            check_type = check.get("type", "check-fail")
+            weight = weights.get(check_type, 0.0)
+            total_weight += 1.0  # Each check contributes equally to total
+            earned_weight += weight
+
+        if total_weight == 0:
+            return 0.0
+
+        # Calculate percentage score
+        score = (earned_weight / total_weight) * 100
+        return round(score, 2)
 
     async def analyze(self, url: str) -> Dict[str, Any]:
         """

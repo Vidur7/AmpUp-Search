@@ -20,50 +20,51 @@ from .db import Base
 
 
 class AnalysisRequest(BaseModel):
-    url: HttpUrl
+    url: str = Field(..., description="The URL to analyze")
     include_content: bool = Field(default=True)
 
 
 class CrawlabilityScore(BaseModel):
-    robots_txt_score: float = Field(ge=0, le=100)
-    llms_txt_score: float = Field(ge=0, le=100)
-    total_score: float = Field(ge=0, le=100)
+    robots_txt_score: float = Field(..., ge=0, le=100)
+    llms_txt_score: float = Field(..., ge=0, le=100)
+    total_score: float = Field(..., ge=0, le=100)
     issues: List[str] = Field(default_factory=list)
 
 
 class StructuredDataScore(BaseModel):
     schema_types: List[str] = Field(default_factory=list)
-    implementation_score: float = Field(ge=0, le=100)
-    total_score: float = Field(ge=0, le=100)
+    implementation_score: float = Field(..., ge=0, le=100)
+    total_score: float = Field(..., ge=0, le=100)
     issues: List[str] = Field(default_factory=list)
 
 
 class ContentStructureScore(BaseModel):
-    heading_score: float = Field(ge=0, le=100)
-    list_table_score: float = Field(ge=0, le=100)
-    conciseness_score: float = Field(ge=0, le=100)
-    qa_format_score: float = Field(ge=0, le=100)
-    total_score: float = Field(ge=0, le=100)
+    heading_score: float = Field(..., ge=0, le=100)
+    list_table_score: float = Field(..., ge=0, le=100)
+    conciseness_score: float = Field(..., ge=0, le=100)
+    qa_format_score: float = Field(..., ge=0, le=100)
+    total_score: float = Field(..., ge=0, le=100)
     issues: List[str] = Field(default_factory=list)
 
 
 class EEATScore(BaseModel):
-    author_score: float = Field(ge=0, le=100)
-    citation_score: float = Field(ge=0, le=100)
-    originality_score: float = Field(ge=0, le=100)
-    date_score: float = Field(ge=0, le=100)
-    total_score: float = Field(ge=0, le=100)
+    author_score: float = Field(..., ge=0, le=100)
+    citation_score: float = Field(..., ge=0, le=100)
+    originality_score: float = Field(..., ge=0, le=100)
+    date_score: float = Field(..., ge=0, le=100)
+    total_score: float = Field(..., ge=0, le=100)
     issues: List[str] = Field(default_factory=list)
 
 
 class AnalysisResponse(BaseModel):
-    id: str
     url: str
-    overall_score: float
-    timestamp: datetime
-
-    class Config:
-        from_attributes = True
+    overall_score: float = Field(..., ge=0, le=100)
+    crawlability: CrawlabilityScore
+    structured_data: StructuredDataScore
+    content_structure: ContentStructureScore
+    eeat: EEATScore
+    recommendations: List[str] = Field(default_factory=list)
+    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
 
 
 class Analysis(Base):

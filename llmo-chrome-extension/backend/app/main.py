@@ -8,7 +8,7 @@ from app.db import get_db
 from app.database import init_db, engine, Base
 from app.models import AnonymousUsage, Analysis, User, Audit  # Import all models
 from app.services import LLMOAnalyzer
-from app.api import router
+from app.api import router as api_router
 from app.api.v1 import auth, user, google_auth
 from app.config import settings
 import validators
@@ -47,9 +47,9 @@ class AnalyzeResponse(BaseModel):
 
 
 app = FastAPI(
-    title=settings.app_name,
-    description="API for analyzing webpage optimization for Large Language Models",
-    version=settings.version,
+    title="LLMO Readiness Auditor API",
+    description="API for analyzing web pages for LLM optimization",
+    version="1.0.0",
 )
 
 
@@ -68,32 +68,18 @@ except Exception as e:
     logger.error(f"Error creating database tables: {str(e)}")
     raise
 
-# Configure CORS - MUST be before including routers
-origins = [
-    "chrome-extension://*",  # Allow all Chrome extension origins
-    "*chrome-extension://*",  # Alternative format
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://localhost:3002",
-    "http://localhost:3003",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:3001",
-    "http://127.0.0.1:3002",
-    "http://127.0.0.1:3003",
-]
-
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for testing
+    allow_origins=["*"],  # Allows all origins
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
 )
 
 # Log CORS settings
 logger.info("Starting application with CORS settings:")
-logger.info(f"Allowed origins: {origins}")
+logger.info("Allowed origins: *")
 logger.info("CORS credentials allowed: True")
 logger.info("All methods and headers allowed")
 
@@ -101,23 +87,21 @@ logger.info("All methods and headers allowed")
 FREE_ANALYSIS_LIMIT = 5
 FREE_FULL_VIEWS_LIMIT = 2
 
-# Include routers
-app.include_router(router, prefix="/api/v1")
+# Include the API router
+app.include_router(api_router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(user.router, prefix="/api/v1/user", tags=["user"])
 app.include_router(google_auth.router, prefix="/api/v1/auth", tags=["auth"])
 
 
 @app.get("/")
-async def read_root():
-    return {"status": "ok", "message": "LLMO Readiness Auditor API"}
+async def root():
+    return {"message": "Welcome to LLMO Readiness Auditor API"}
 
 
 @app.get("/health")
 async def health_check():
-    return JSONResponse(
-        content={"status": "healthy", "version": "0.1.0"}, status_code=200
-    )
+    return {"status": "healthy"}
 
 
 @app.get("/usage/{anon_id}")
@@ -140,33 +124,10 @@ async def analyze_url(request: AnalyzeRequest):
         raise HTTPException(status_code=400, detail="Invalid URL provided")
 
     try:
-        # Return mock data with structure matching what the extension expects
-        return {
-            "overall_score": 65.0,
-            "crawlability": {
-                "total_score": 70.0,
-                "issues": ["No llms.txt found", "robots.txt is present"],
-            },
-            "structured_data": {
-                "total_score": 60.0,
-                "issues": ["Limited schema.org markup", "No product schema"],
-            },
-            "content_structure": {
-                "total_score": 75.0,
-                "issues": ["Good heading structure", "Could use more lists"],
-            },
-            "eeat": {
-                "total_score": 55.0,
-                "issues": ["No clear author attribution", "Missing publication date"],
-            },
-            "recommendations": [
-                "Add llms.txt file to guide AI crawlers",
-                "Implement more schema.org markup",
-                "Add author information with proper schema",
-                "Include publication date",
-            ],
-            "timestamp": datetime.utcnow().isoformat(),
-        }
+        # Create analyzer instance and analyze the URL
+        analyzer = LLMOAnalyzer(request.url)
+        result = await analyzer.analyze_page()
+        return result
 
     except Exception as e:
         logger.error(f"Error analyzing URL: {str(e)}")

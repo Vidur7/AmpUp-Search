@@ -87,6 +87,8 @@ async function startAnalysis(force = false) {
         
         // Send message to content script to analyze the page
         chrome.tabs.sendMessage(tab.id, { action: 'analyze' }, (response) => {
+            console.log('Received response in popup:', response);
+            
             if (chrome.runtime.lastError) {
                 // If content script is not injected, inject it
                 chrome.scripting.executeScript({
@@ -115,54 +117,39 @@ async function startAnalysis(force = false) {
                 return;
             }
             
-            handleAnalysisResponse(response.data);
+            // Handle the analysis response
+            handleAnalysisResponse(response);
         });
     } catch (error) {
         showError('An error occurred while analyzing the page: ' + error.message);
-        showResultsView(); // Show results view even on error
+        showResultsView();
         console.error('Analysis error:', error);
     }
 }
 
 // Handle the analysis response
 function handleAnalysisResponse(response) {
-    console.log('Received analysis response:', response);
+    console.log('Handling analysis response:', response);
     
-    if (!response) {
-        showError('No analysis data received from the server.');
-        return;
-    }
-    
-    // Check if response is an error object
-    if (response.error) {
-        showError(response.error);
-        return;
-    }
-    
-    // Check if response has the expected data structure
-    if (!response.data && !response.overall_score) {
-        console.error('Invalid response structure:', response);
-        showError('Invalid response format received from the server.');
-        return;
-    }
-    
-    try {
-        // Use response.data if it exists (from content script), otherwise use response directly (from direct analysis)
-        const analysisData = response.data || response;
-        console.log('Processing analysis data:', analysisData);
-        
-        // Validate required fields
-        if (typeof analysisData.overall_score !== 'number') {
-            throw new Error('Missing or invalid overall score');
-        }
-        
-        currentAnalysis = analysisData;
-        updateUI(analysisData);
+    if (!response || !response.data) {
+        showError('Invalid response format from analysis.');
         showResultsView();
-    } catch (error) {
-        console.error('Error processing analysis data:', error);
-        showError('Error processing analysis results: ' + error.message);
+        return;
     }
+    
+    const data = response.data;
+    
+    // Update the overall score
+    updateOverallScore(data.overall_score);
+    
+    // Update the analysis sections
+    updateSections(data);
+    
+    // Show the results view
+    showResultsView();
+    
+    // Show success notification
+    showNotification('Analysis completed successfully!', LLMO_CONFIG.NOTIFICATION_TYPES.SUCCESS);
 }
 
 // Update the UI with analysis results

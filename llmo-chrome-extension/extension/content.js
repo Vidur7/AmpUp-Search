@@ -27,8 +27,18 @@ function clearOldCacheEntries() {
 
 // Listen for messages from the popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log('Content script received message:', request);
+    
     if (request.action === 'analyze') {
         console.log('Content script received analyze request');
+        
+        // Check if we have a cached result
+        const cachedResult = window.LLMO_CACHE.get(window.location.href);
+        if (cachedResult && Date.now() - cachedResult.timestamp < LLMO_CONFIG.CACHE.DURATION) {
+            console.log('Using cached result');
+            sendResponse(cachedResult.data);
+            return true;
+        }
         
         // Forward the analysis request to the background script
         chrome.runtime.sendMessage(
@@ -44,45 +54,79 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     console.error('No response from background script');
                     sendResponse({ 
                         success: false, 
-                        error: 'No response from analysis service' 
+                        error: 'No response from analysis service',
+                        data: {
+                            url: window.location.href,
+                            overall_score: 0,
+                            crawlability: {
+                                total_score: 0,
+                                issues: ['No response from analysis service']
+                            },
+                            structured_data: {
+                                total_score: 0,
+                                issues: ['No response from analysis service']
+                            },
+                            content_structure: {
+                                total_score: 0,
+                                issues: ['No response from analysis service']
+                            },
+                            eeat: {
+                                total_score: 0,
+                                issues: ['No response from analysis service']
+                            },
+                            recommendations: ['The analysis service is not responding. Please try again later.'],
+                            timestamp: new Date().toISOString()
+                        }
                     });
                     return;
                 }
                 
-                if (response.error) {
-                    console.error('Error from background script:', response.error);
-                    sendResponse({ 
-                        success: false, 
-                        error: response.error 
+                // Cache successful results
+                if (response.success && response.data) {
+                    window.LLMO_CACHE.set(window.location.href, {
+                        data: response,
+                        timestamp: Date.now()
                     });
-                    return;
                 }
                 
-                try {
-                    // Transform the API response
-                    const transformedData = transformApiResponse(response.data || response);
-                    console.log('Transformed data:', transformedData);
-                    
-                    // Validate the transformed data
-                    if (!isValidAnalysisData(transformedData)) {
-                        throw new Error('Invalid analysis data structure');
-                    }
-                    
-                    sendResponse({ 
-                        success: true, 
-                        data: transformedData 
-                    });
-                } catch (error) {
-                    console.error('Error transforming response:', error);
-                    sendResponse({ 
-                        success: false, 
-                        error: 'Error processing analysis results: ' + error.message 
-                    });
-                }
+                // Send the response back to the popup
+                sendResponse(response);
             }
         );
-        return true; // Will respond asynchronously
+        
+        // Return true to indicate we will send response asynchronously
+        return true;
     }
+    
+    // Handle unknown actions
+    console.warn('Unknown action received:', request.action);
+    sendResponse({
+        success: false,
+        error: `Unknown action: ${request.action}`,
+        data: {
+            url: window.location.href,
+            overall_score: 0,
+            crawlability: {
+                total_score: 0,
+                issues: [`Unknown action: ${request.action}`]
+            },
+            structured_data: {
+                total_score: 0,
+                issues: [`Unknown action: ${request.action}`]
+            },
+            content_structure: {
+                total_score: 0,
+                issues: [`Unknown action: ${request.action}`]
+            },
+            eeat: {
+                total_score: 0,
+                issues: [`Unknown action: ${request.action}`]
+            },
+            recommendations: [`Unknown action: ${request.action}`],
+            timestamp: new Date().toISOString()
+        }
+    });
+    return true;
 });
 
 // Validate analysis data structure
