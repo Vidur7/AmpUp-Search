@@ -141,112 +141,91 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Pricing Section */}
-        <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+        {/* Beta Testing Section */}
+        <section id="beta" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
           <div className="max-w-7xl mx-auto">
             <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">
-              Simple, Transparent Pricing
+              Join Our Beta Testing Program
             </h2>
             <p className="text-xl text-center text-gray-600 mb-16">
-              Start optimizing your content for free. Upgrade when you're ready.
+              Be among the first to experience the future of AI content optimization
             </p>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-              {/* Free Plan */}
-              <div className="rounded-2xl border-2 border-gray-200 p-8 hover:border-indigo-500 transition-all">
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">Free Plan</h3>
-                <p className="text-gray-600 mb-6">Perfect for getting started with AI optimization</p>
-                <div className="text-4xl font-bold text-gray-900 mb-6">
-                  $0 <span className="text-base font-normal text-gray-600">/month</span>
-                </div>
-                <ul className="space-y-4 mb-8">
-                  <li className="flex items-center text-gray-600">
-                    <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                    5 detailed content analyses per month
-                  </li>
-                  <li className="flex items-center text-gray-600">
-                    <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                    Basic optimization recommendations
-                  </li>
-                  <li className="flex items-center text-gray-600">
-                    <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                    Chrome extension access
-                  </li>
-                </ul>
-                <Link
-                  href="/auth/signup"
-                  className="block w-full py-3 px-4 rounded-full text-center bg-white border-2 border-indigo-500 text-indigo-600 font-medium hover:bg-indigo-50 transition-all"
-                >
-                  Get Started
-                </Link>
-              </div>
-
-              {/* Pro Plan */}
+            <div className="max-w-3xl mx-auto">
               <div className="rounded-2xl border-2 border-indigo-500 p-8 bg-gradient-to-b from-white to-indigo-50 relative overflow-hidden">
                 <div className="absolute top-4 right-4 bg-indigo-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                  Popular
+                  Limited Time
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">Pro Plan</h3>
-                <p className="text-gray-600 mb-6">For professionals and growing businesses</p>
-                <div className="text-4xl font-bold text-gray-900 mb-6">
-                  $20 <span className="text-base font-normal text-gray-600">/month</span>
-                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">Exclusive Beta Access</h3>
+                <p className="text-gray-600 mb-6">Join our exclusive beta testing program and help shape the future of AI content optimization</p>
+                
                 <ul className="space-y-4 mb-8">
                   <li className="flex items-center text-gray-600">
                     <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                     </svg>
-                    Unlimited detailed content analyses
+                    Unlimited content analyses during beta
                   </li>
                   <li className="flex items-center text-gray-600">
                     <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                     </svg>
-                    Advanced AI optimization insights
+                    Full access to all features
                   </li>
                   <li className="flex items-center text-gray-600">
                     <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                     </svg>
-                    Priority support
+                    Direct feedback channel to our team
                   </li>
                   <li className="flex items-center text-gray-600">
                     <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                     </svg>
-                    Export detailed reports
+                    Early access to new features
                   </li>
                   <li className="flex items-center text-gray-600">
                     <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                     </svg>
-                    API access
+                    Priority support during beta
                   </li>
                 </ul>
+
+                <div className="bg-indigo-50 rounded-lg p-6 mb-8">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <svg className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h4 className="text-sm font-medium text-indigo-800">Beta Program Details</h4>
+                      <p className="mt-2 text-sm text-indigo-700">
+                        This is a limited-time opportunity to join our beta testing program. Sign up now to get exclusive access to all features and help us shape the future of AI content optimization.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <Link
                   href="/auth/signup"
                   className="block w-full py-3 px-4 rounded-full text-center bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium hover:shadow-lg transition-all"
                 >
-                  Upgrade to Pro
+                  Join Beta Program
                 </Link>
               </div>
-            </div>
 
-            <div className="mt-12 text-center">
-              <p className="text-gray-600">
-                All plans include our Chrome extension and basic content analysis features.
-                <br />
-                Need a custom plan for your enterprise?{' '}
-                <Link href="/contact" className="text-indigo-600 hover:text-indigo-700 font-medium">
-                  Contact us
-                </Link>
-              </p>
+              <div className="mt-12 text-center">
+                <p className="text-gray-600">
+                  Limited spots available. Sign up now to secure your place in our beta testing program.
+                  <br />
+                  Have questions?{' '}
+                  <Link href="/contact" className="text-indigo-600 hover:text-indigo-700 font-medium">
+                    Contact us
+                  </Link>
+                </p>
+              </div>
             </div>
           </div>
         </section>

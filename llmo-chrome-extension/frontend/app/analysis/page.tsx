@@ -38,7 +38,7 @@ export default function AnalysisPage() {
     <DashboardLayout userName={userName}>
       <div>
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Detailed Analysis</h1>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Detailed Analysis</h1>
           <button 
             onClick={() => router.back()}
             className="text-indigo-600 hover:text-indigo-800 flex items-center"

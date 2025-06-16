@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface Analysis {
@@ -8,62 +7,20 @@ interface Analysis {
   id: string;
 }
 
-export default function RecentScores() {
-  const [analyses, setAnalyses] = useState<Analysis[]>([]);
-  const [loading, setLoading] = useState(true);
+interface RecentScoresProps {
+  analyses: Analysis[];
+}
+
+export default function RecentScores({ analyses }: RecentScoresProps) {
   const router = useRouter();
-  
-  useEffect(() => {
-    const fetchRecentAnalyses = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-        
-        const response = await fetch('http://localhost:8000/api/v1/user/analyses?limit=5', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch recent analyses');
-        }
-        
-        const data = await response.json();
-        setAnalyses(data);
-      } catch (error) {
-        console.error('Error fetching recent analyses:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchRecentAnalyses();
-  }, []);
-  
-  if (loading) {
-    return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Scores</h2>
-        <div className="space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="animate-pulse flex items-center justify-between">
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-              <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const recentAnalyses = analyses.slice(0, 5);
   
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Scores</h2>
-      {analyses.length > 0 ? (
+      {recentAnalyses.length > 0 ? (
         <div className="space-y-4">
-          {analyses.map((analysis) => (
+          {recentAnalyses.map((analysis) => (
             <div 
               key={analysis.id} 
               className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-md transition-colors"
@@ -94,7 +51,7 @@ export default function RecentScores() {
           <p className="text-gray-500">No analyses yet</p>
         </div>
       )}
-      {analyses.length > 0 && (
+      {recentAnalyses.length > 0 && (
         <div className="mt-4 text-center">
           <button 
             onClick={() => router.push('/analyses')}

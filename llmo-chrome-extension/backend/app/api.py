@@ -8,13 +8,18 @@ from bs4 import BeautifulSoup
 import aiohttp
 from datetime import datetime
 from typing import Dict, Any
-from pydantic import ValidationError
+from pydantic import ValidationError, BaseModel
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+class RecommendationRequest(BaseModel):
+    url: str
+    analysis: Dict[str, Any]
 
 
 def create_error_response(url: str, error_message: str) -> Dict[str, Any]:
@@ -205,6 +210,71 @@ async def analyze_webpage(request: AnalysisRequest) -> Dict[str, Any]:
             "data": create_error_response(
                 str(request.url), f"Analysis failed: {str(e)}"
             ),
+        }
+
+
+@router.post("/analyze/recommendations")
+async def generate_recommendations(request: RecommendationRequest) -> Dict[str, Any]:
+    """
+    Generate AI-powered recommendations based on analysis results
+    """
+    try:
+        # Extract all issues from the analysis
+        all_issues = []
+        for section in ["crawlability", "structured_data", "content_structure", "eeat"]:
+            if section in request.analysis:
+                section_data = request.analysis[section]
+                if "issues" in section_data:
+                    all_issues.extend(section_data["issues"])
+
+        # Generate AI recommendations
+        recommendations = []
+
+        # Group issues by type
+        issues_by_type = {
+            "crawlability": [],
+            "structured_data": [],
+            "content_structure": [],
+            "eeat": [],
+        }
+
+        for issue in all_issues:
+            if isinstance(issue, dict) and "type" in issue and "text" in issue:
+                if issue["type"] == "check-fail":
+                    # Determine which section this issue belongs to
+                    for section in issues_by_type:
+                        if section in issue["text"].lower():
+                            issues_by_type[section].append(issue)
+                            break
+
+        # Generate recommendations for each section
+        for section, issues in issues_by_type.items():
+            if issues:
+                section_name = section.replace("_", " ").title()
+                recommendations.append(f"📊 {section_name} Improvements:")
+                for issue in issues:
+                    if issue.get("recommendation"):
+                        recommendations.append(f"• {issue['recommendation']}")
+                    else:
+                        recommendations.append(f"• {issue['text']}")
+
+        # Add overall recommendations
+        if recommendations:
+            recommendations.insert(0, "🎯 Overall Recommendations:")
+            recommendations.append("\n💡 Next Steps:")
+            recommendations.append("1. Prioritize fixing critical issues first")
+            recommendations.append("2. Implement structured data improvements")
+            recommendations.append("3. Enhance content structure and readability")
+            recommendations.append("4. Strengthen E-E-A-T signals")
+
+        return {"success": True, "recommendations": recommendations}
+
+    except Exception as e:
+        logger.error(f"Error generating recommendations: {str(e)}", exc_info=True)
+        return {
+            "success": False,
+            "error": "Failed to generate recommendations",
+            "message": str(e),
         }
 
 

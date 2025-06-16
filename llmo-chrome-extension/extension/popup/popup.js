@@ -138,12 +138,10 @@ function handleAnalysisResponse(response) {
     }
     
     const data = response.data;
+    currentAnalysis = data;  // Store the analysis data
     
-    // Update the overall score
-    updateOverallScore(data.overall_score);
-    
-    // Update the analysis sections
-    updateSections(data);
+    // Update the UI with the analysis results
+    updateUI(data);
     
     // Show the results view
     showResultsView();
@@ -182,8 +180,36 @@ function updateUI(analysis) {
         `;
         
         viewMoreButton.addEventListener('click', () => {
+            // Ensure all required fields are present
+            const detailedAnalysis = {
+                ...analysis,
+                crawlability: {
+                    ...analysis.crawlability,
+                    issues: analysis.crawlability.issues || [],
+                    total_score: analysis.crawlability.total_score || 0
+                },
+                structured_data: {
+                    ...analysis.structured_data,
+                    issues: analysis.structured_data.issues || [],
+                    total_score: analysis.structured_data.total_score || 0,
+                    schema_types: analysis.structured_data.schema_types || []
+                },
+                content_structure: {
+                    ...analysis.content_structure,
+                    issues: analysis.content_structure.issues || [],
+                    total_score: analysis.content_structure.total_score || 0
+                },
+                eeat: {
+                    ...analysis.eeat,
+                    issues: analysis.eeat.issues || [],
+                    total_score: analysis.eeat.total_score || 0
+                },
+                recommendations: analysis.recommendations || [],
+                timestamp: analysis.timestamp || new Date().toISOString()
+            };
+            
             const websiteUrl = 'http://localhost:3000/analysis';
-            const encodedData = encodeURIComponent(JSON.stringify(currentAnalysis));
+            const encodedData = encodeURIComponent(JSON.stringify(detailedAnalysis));
             window.open(`${websiteUrl}?data=${encodedData}`, '_blank');
         });
         

@@ -34,7 +34,7 @@ export default function Sidebar({ userName = 'User' }: SidebarProps) {
       )
     },
     {
-      name: 'My Analyses',
+      name: 'Analysis',
       href: '/analyses',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

@@ -22,7 +22,7 @@ export default function Settings() {
         router.push('/auth/signin');
         return false;
       }
-      
+
       try {
         // Validate user data
         const userData = JSON.parse(userStr);
@@ -31,7 +31,7 @@ export default function Settings() {
         } else if (userData.email) {
           setUserName(userData.email.split('@')[0]);
         }
-        
+
         if (userData.email) {
           setEmail(userData.email);
         }
@@ -135,7 +135,7 @@ export default function Settings() {
                     id="name"
                     value={userName}
                     onChange={(e) => setUserName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
                     required
                   />
                 </div>
@@ -149,11 +149,11 @@ export default function Settings() {
                     id="email"
                     value={email}
                     readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-not-allowed"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-not-allowed text-gray-900"
                   />
                   <p className="mt-1 text-xs text-gray-500">Email address cannot be changed</p>
                 </div>
-                
+
                 <div>
                   <button
                     type="submit"

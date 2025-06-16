@@ -1,42 +1,25 @@
 import { useState, useEffect } from 'react';
 
-interface UsageStats {
-  analysis_count: number;
-  full_views_used: number;
-  is_premium: boolean;
+interface Analysis {
+  url: string;
+  overall_score: number;
+  timestamp: string;
+  id: string;
 }
 
-export default function UsageStatsCard() {
-  const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
+interface UsageStatsProps {
+  analyses: Analysis[];
+}
+
+export default function UsageStatsCard({ analyses }: UsageStatsProps) {
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    const fetchUsageStats = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-        
-        const response = await fetch('http://localhost:8000/api/v1/user/usage', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch usage statistics');
-        }
-        
-        const data = await response.json();
-        setUsageStats(data);
-      } catch (error) {
-        console.error('Error fetching usage statistics:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchUsageStats();
+    // Simulate loading state
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 500);
+    return () => clearTimeout(timer);
   }, []);
   
   if (loading) {
@@ -52,14 +35,8 @@ export default function UsageStatsCard() {
     );
   }
   
-  if (!usageStats) {
-    return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Usage Statistics</h2>
-        <p className="text-gray-500">Unable to load usage statistics</p>
-      </div>
-    );
-  }
+  const totalAnalyses = analyses.length;
+  const maxAnalyses = 100; // Increased limit for beta testing
   
   return (
     <div className="bg-white rounded-lg shadow p-6">
@@ -68,48 +45,36 @@ export default function UsageStatsCard() {
       <div className="space-y-4">
         <div>
           <div className="flex justify-between mb-1">
-            <span className="text-sm font-medium text-gray-700">Analyses Used</span>
+            <span className="text-sm font-medium text-gray-700">Total Analyses</span>
             <span className="text-sm font-medium text-gray-700">
-              {usageStats.analysis_count}/5
+              {totalAnalyses}/{maxAnalyses}
             </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div 
               className="bg-gradient-to-r from-indigo-500 to-purple-600 h-2 rounded-full" 
-              style={{ width: `${Math.min(100, (usageStats.analysis_count / 5) * 100)}%` }}
+              style={{ width: `${Math.min(100, (totalAnalyses / maxAnalyses) * 100)}%` }}
             ></div>
           </div>
         </div>
         
-        <div>
-          <div className="flex justify-between mb-1">
-            <span className="text-sm font-medium text-gray-700">Full Views</span>
-            <span className="text-sm font-medium text-gray-700">
-              {usageStats.full_views_used}/2
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 h-2 rounded-full" 
-              style={{ width: `${Math.min(100, (usageStats.full_views_used / 2) * 100)}%` }}
-            ></div>
+        <div className="pt-4 border-t border-gray-100">
+          <div className="bg-indigo-50 rounded-lg p-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-indigo-800">Beta Testing Program</h3>
+                <div className="mt-2 text-sm text-indigo-700">
+                  <p>You&apos;re part of our exclusive beta testing program. Enjoy unlimited access to all features during this period.</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        
-        <div className="pt-2">
-          <p className="text-sm text-gray-600">
-            Account Type: <span className="font-medium">{usageStats.is_premium ? 'Premium' : 'Free'}</span>
-          </p>
-        </div>
-        
-        {!usageStats.is_premium && (
-          <button
-            onClick={() => window.open('https://ampup.ai/pricing', '_blank')}
-            className="w-full mt-2 py-2 rounded-md bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-medium hover:shadow-md transition-all"
-          >
-            Upgrade to Premium
-          </button>
-        )}
       </div>
     </div>
   );

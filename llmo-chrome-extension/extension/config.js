@@ -24,17 +24,17 @@
         },
         
         SECTION_TEMPLATE: {
-            technical: {
+            crawlability: {
                 title: 'Technical Crawlability',
-                description: null,
+                description: 'How well search engines and AI can access your content',
             },
-            structured: {
+            structured_data: {
                 title: 'Structured Data & Schema',
-                description: null,
+                description: 'How well your content is structured for AI understanding',
             },
-            content: {
+            content_structure: {
                 title: 'Content Structure & AI Readability',
-                description: null,
+                description: 'How well your content is organized for AI consumption',
             },
             eeat: {
                 title: 'E-E-A-T',
