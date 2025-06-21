@@ -8,7 +8,7 @@ export default function Home() {
       <Navigation />
       <main className="min-h-screen bg-gradient-to-b from-white to-gray-50 pt-16">
         {/* Hero Section */}
-        <section className="relative py-20 px-4 sm:px-6 lg:px-8">
+        <section className="relative py-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="text-center">
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 tracking-tight">
@@ -18,7 +18,7 @@ export default function Home() {
               <p className="mt-3 text-xl sm:text-2xl text-gray-600">
                 SEO for Large Language Models
               </p>
-              <div className="mt-10 flex justify-center gap-4">
+              <div className="mt-8 flex justify-center gap-4">
                 <a
                   href="https://chrome.google.com/webstore"
                   className="px-8 py-3 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium hover:shadow-lg transition-all"
@@ -32,7 +32,7 @@ export default function Home() {
                   Learn More
                 </a>
               </div>
-              <p className="mt-6 text-center text-gray-600 text-lg">
+              <p className="mt-4 text-center text-gray-600 text-lg">
                 One click to install. Instant insight into your AI-first visibility.
               </p>
             </div>
@@ -40,17 +40,17 @@ export default function Home() {
         </section>
 
         {/* Features Section */}
-        <section id="features" className="py-12 px-4 sm:px-6 lg:px-8 bg-white">
+        <section id="features" className="py-6 px-4 sm:px-6 lg:px-8 bg-white">
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-3xl font-bold text-center text-gray-700 mb-4">
+            <h2 className="text-3xl font-bold text-center text-gray-700 mb-2">
               Optimize Smarter. Grow Faster.
             </h2>
-            <h2 className="text-3xl font-bold text-center mb-16">
+            <h2 className="text-3xl font-bold text-center mb-8">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-600">AmpUp</span>
               {' '}
               <span className="text-gray-700">Like a Pro.</span>
             </h2>
-            <p className="text-xl font-bold text-center text-gray-800 mb-16">
+            <p className="text-xl font-bold text-center text-gray-800 mb-10">
               Stand out to Large Language Models in the AI-First World.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
