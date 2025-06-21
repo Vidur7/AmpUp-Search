@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from .models import AnalysisRequest, AnalysisResponse
 from .services import LLMOAnalyzer
 import logging
@@ -9,6 +9,10 @@ import aiohttp
 from datetime import datetime
 from typing import Dict, Any
 from pydantic import ValidationError, BaseModel
+import uuid
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app.models import Analysis
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -62,7 +66,9 @@ def create_error_response(url: str, error_message: str) -> Dict[str, Any]:
 
 
 @router.post("/analyze")
-async def analyze_webpage(request: AnalysisRequest) -> Dict[str, Any]:
+async def analyze_webpage(
+    request: AnalysisRequest, db: Session = Depends(get_db)
+) -> Dict[str, Any]:
     """
     Analyze a webpage for LLM optimization opportunities
     """
@@ -127,14 +133,36 @@ async def analyze_webpage(request: AnalysisRequest) -> Dict[str, Any]:
                     ),
                 }
 
+            # Generate a unique ID for this analysis
+            analysis_id = str(uuid.uuid4())
+
             # Validate the response using Pydantic
             try:
                 logger.info(f"Validating response for {request.url}")
                 validated_response = AnalysisResponse.model_validate(result)
                 logger.info(f"Response validation successful for {request.url}")
 
+                # Create a new Analysis record
+                analysis = Analysis(
+                    id=analysis_id,
+                    anonymous_id=request.anonymous_id,  # This should be passed in the request
+                    url=request.url,
+                    overall_score=validated_response.overall_score,
+                    crawlability=validated_response.crawlability.dict(),
+                    structured_data=validated_response.structured_data.dict(),
+                    content_structure=validated_response.content_structure.dict(),
+                    eeat=validated_response.eeat.dict(),
+                    recommendations=validated_response.recommendations,
+                )
+
+                # Save to database
+                db.add(analysis)
+                db.commit()
+                db.refresh(analysis)
+
                 # Ensure the response has the correct structure
                 response_data = {
+                    "id": analysis_id,  # Add the generated ID
                     "url": request.url,
                     "overall_score": validated_response.overall_score,
                     "crawlability": {
@@ -281,3 +309,46 @@ async def generate_recommendations(request: RecommendationRequest) -> Dict[str, 
 @router.get("/")
 async def root():
     return {"message": "Welcome to AmpUp Search API"}
+
+
+@router.get("/analysis/{analysis_id}")
+async def get_analysis(
+    analysis_id: str, db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Get analysis results by ID
+    """
+    try:
+        # Query the database for the analysis
+        analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
+
+        if not analysis:
+            logger.error(f"Analysis not found with ID: {analysis_id}")
+            return {
+                "success": False,
+                "error": "Analysis not found",
+                "message": "The requested analysis could not be found. It may have expired or been deleted.",
+            }
+
+        # Convert the analysis to the expected response format
+        return {
+            "success": True,
+            "data": {
+                "id": str(analysis.id),
+                "url": analysis.url,
+                "overall_score": analysis.overall_score,
+                "crawlability": analysis.crawlability,
+                "structured_data": analysis.structured_data,
+                "content_structure": analysis.content_structure,
+                "eeat": analysis.eeat,
+                "recommendations": analysis.recommendations,
+                "timestamp": analysis.created_at.isoformat(),
+            },
+        }
+    except Exception as e:
+        logger.error(f"Error fetching analysis: {str(e)}", exc_info=True)
+        return {
+            "success": False,
+            "error": "Failed to fetch analysis",
+            "message": str(e),
+        }

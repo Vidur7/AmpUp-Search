@@ -62,24 +62,29 @@ async function analyzeUrl(url, anonId) {
         }
         
         if (!data.success) {
-            console.error('Analysis not successful:', {
-                error: data.error,
-                message: data.message,
-                data: data.data
-            });
+            console.error('❌ Analysis not successful:', data);
             
-            // Handle specific error cases
-            if (data.error === "Analysis timed out") {
-                throw new Error("The page took too long to analyze. Please try a different URL or try again later.");
-            } else if (data.error === "Network error") {
-                throw new Error("Could not connect to the website. Please check your internet connection and try again.");
-            } else if (data.error === "Access forbidden") {
-                throw new Error("This page blocks automated analysis. Please try a different URL.");
-            } else if (data.message) {
-                throw new Error(data.message);
-            } else {
-                throw new Error(data.error || 'Analysis failed');
+            // Extract more specific error information
+            let errorMessage = 'Analysis failed';
+            let errorDetails = '';
+            
+            if (data.error) {
+                errorMessage = data.error;
             }
+            
+            if (data.message) {
+                errorDetails = data.message;
+            }
+            
+            // Check for specific error patterns in the data
+            if (data.data && data.data.recommendations && data.data.recommendations.length > 0) {
+                const firstRecommendation = data.data.recommendations[0];
+                if (typeof firstRecommendation === 'string' && firstRecommendation.includes('Failed to')) {
+                    errorMessage = firstRecommendation;
+                }
+            }
+            
+            throw new Error(errorMessage + (errorDetails ? ': ' + errorDetails : ''));
         }
         
         console.log('Analysis successful:', data);
@@ -126,12 +131,12 @@ async function analyzeUrlWithRetry(url, anonId, maxRetries = 1) {
     throw lastError;
 }
 
-// Listen for extension installation
+// Initialize extension
 chrome.runtime.onInstalled.addListener(async () => {
-    console.log('LLMO Readiness Auditor installed');
-    console.log('LLMO Config loaded:', LLMO_CONFIG);
-    // Generate anonymous ID on install
-    await getOrCreateAnonymousId();
+    console.log('Extension installed/updated');
+    // Ensure we have an anonymous ID
+    const anonId = await getOrCreateAnonymousId();
+    console.log('Anonymous ID:', anonId);
 });
 
 // Listen for messages from content script
@@ -175,7 +180,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
                 if (!data.success) {
                     console.error('❌ Analysis not successful:', data);
-                    throw new Error(data.error || 'Analysis failed');
+                    
+                    // Extract more specific error information
+                    let errorMessage = 'Analysis failed';
+                    let errorDetails = '';
+                    
+                    if (data.error) {
+                        errorMessage = data.error;
+                    }
+                    
+                    if (data.message) {
+                        errorDetails = data.message;
+                    }
+                    
+                    // Check for specific error patterns in the data
+                    if (data.data && data.data.recommendations && data.data.recommendations.length > 0) {
+                        const firstRecommendation = data.data.recommendations[0];
+                        if (typeof firstRecommendation === 'string' && firstRecommendation.includes('Failed to')) {
+                            errorMessage = firstRecommendation;
+                        }
+                    }
+                    
+                    throw new Error(errorMessage + (errorDetails ? ': ' + errorDetails : ''));
                 }
 
                 if (!data.data || typeof data.data !== 'object') {

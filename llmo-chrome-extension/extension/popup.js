@@ -23,19 +23,12 @@ function updateUsageUI(usage) {
   const usageInfo = document.getElementById('usage-info');
   if (!usageInfo) return;
   
-  if (usage) {
-    const analysesLeft = 5 - usage.analysis_count;
-    const fullViewsLeft = 2 - usage.full_views_used;
-    
-    usageInfo.innerHTML = `
-      <div class="usage-stats">
-        <p>Free Analyses Left: <strong>${Math.max(0, analysesLeft)}</strong></p>
-        <p>Full Views Left: <strong>${Math.max(0, fullViewsLeft)}</strong></p>
-      </div>
-      ${analysesLeft <= 1 ? '<p class="warning">⚠️ Almost out of free analyses!</p>' : ''}
-      ${fullViewsLeft <= 0 ? '<p class="info">ℹ️ Future analyses will show limited results</p>' : ''}
-    `;
-  }
+  usageInfo.innerHTML = `
+    <div class="usage-stats">
+      <p class="text-sm text-gray-600">You are part of our exclusive beta testing program!</p>
+      <p class="text-sm text-gray-600">Enjoy unlimited access to all features.</p>
+    </div>
+  `;
 }
 
 // Handle analysis results
@@ -44,65 +37,117 @@ function displayResults(data) {
   if (!resultsDiv) return;
   
   if (data.error) {
-    if (data.limit_reached) {
-      resultsDiv.innerHTML = `
-        <div class="upgrade-prompt">
-          <h3>Free Analysis Limit Reached</h3>
-          <p>You've used all your free analyses. Upgrade to continue getting insights!</p>
-          <button onclick="window.open('https://ampup.ai/pricing')">Upgrade Now</button>
-        </div>
-      `;
-    } else {
-      resultsDiv.innerHTML = `<p class="error">${data.error}</p>`;
-    }
+    resultsDiv.innerHTML = `<p class="error">${data.error}</p>`;
     return;
   }
   
-  if (!data.show_full_results) {
-    resultsDiv.innerHTML = `
-      <div class="limited-results">
-        <h3>Preview Results</h3>
-        <p>Overall Score: ${data.result.overall_score}</p>
-        <div class="blur-overlay">
-          <p>Detailed results are available with a premium account</p>
-          <button onclick="window.open('https://ampup.ai/pricing')">Upgrade to See More</button>
+  // Show full results
+  resultsDiv.innerHTML = `
+    <div class="full-results">
+      <h3>Analysis Results</h3>
+      <p>Overall Score: ${data.result.overall_score}</p>
+      <div class="score-details">
+        <div class="score-item">
+          <h4>Crawlability</h4>
+          <p>${data.result.crawlability.total_score}%</p>
+        </div>
+        <div class="score-item">
+          <h4>Structure</h4>
+          <p>${data.result.content_structure.total_score}%</p>
+        </div>
+        <div class="score-item">
+          <h4>E-E-A-T</h4>
+          <p>${data.result.eeat.total_score}%</p>
         </div>
       </div>
-    `;
-  } else {
+      <div class="recommendations">
+        <h4>Recommendations</h4>
+        <ul>
+          ${data.result.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+        </ul>
+      </div>
+    </div>
+  `;
+}
+
+// Handle the analysis response
+function handleAnalysisResponse(response) {
+    console.log('Handling analysis response:', response);
+    
+    if (!response || !response.data) {
+        showError('Invalid response format from analysis.');
+        showResultsView();
+        return;
+    }
+    
+    const data = response.data;
+    console.log('Setting currentAnalysis with data:', data);
+    currentAnalysis = data;  // Store the analysis data
+    
+    // Update the UI with the analysis results
+    updateUI(data);
+    
+    // Show the results view
+    showResultsView();
+    
+    // Show success notification
+    showNotification('Analysis completed successfully!', LLMO_CONFIG.NOTIFICATION_TYPES.SUCCESS);
+}
+
+// Update UI with analysis results
+function updateUI(data) {
+    const resultsDiv = document.getElementById('results');
+    if (!resultsDiv) return;
+    
+    if (data.error) {
+        resultsDiv.innerHTML = `<p class="error">${data.error}</p>`;
+        return;
+    }
+    
     // Show full results
     resultsDiv.innerHTML = `
-      <div class="full-results">
-        <h3>Analysis Results</h3>
-        <p>Overall Score: ${data.result.overall_score}</p>
-        <div class="score-details">
-          <div class="score-item">
-            <h4>Crawlability</h4>
-            <p>${data.result.crawlability.total_score}%</p>
-          </div>
-          <div class="score-item">
-            <h4>Structure</h4>
-            <p>${data.result.content_structure.total_score}%</p>
-          </div>
-          <div class="score-item">
-            <h4>E-E-A-T</h4>
-            <p>${data.result.eeat.total_score}%</p>
-          </div>
+        <div class="full-results">
+            <h3>Analysis Results</h3>
+            <p>Overall Score: ${data.overall_score}</p>
+            <div class="score-details">
+                <div class="score-item">
+                    <h4>Crawlability</h4>
+                    <p>${data.crawlability.total_score}%</p>
+                </div>
+                <div class="score-item">
+                    <h4>Structure</h4>
+                    <p>${data.content_structure.total_score}%</p>
+                </div>
+                <div class="score-item">
+                    <h4>E-E-A-T</h4>
+                    <p>${data.eeat.total_score}%</p>
+                </div>
+            </div>
+            <div class="recommendations">
+                <h4>Recommendations</h4>
+                <ul>
+                    ${data.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                </ul>
+            </div>
+            <div class="actions">
+                <button onclick="viewDetailedAnalysis()" class="view-details-btn">
+                    View Detailed Analysis
+                </button>
+            </div>
         </div>
-        <div class="recommendations">
-          <h4>Recommendations</h4>
-          <ul>
-            ${data.result.recommendations.map(rec => `<li>${rec}</li>`).join('')}
-          </ul>
-        </div>
-      </div>
     `;
-  }
-  
-  // Update usage display
-  if (data.usage) {
-    updateUsageUI(data.usage);
-  }
+}
+
+// Function to open detailed analysis view
+function viewDetailedAnalysis() {
+    console.log('Current analysis state:', currentAnalysis);
+    if (!currentAnalysis || !currentAnalysis.id) {
+        console.error('No analysis ID available');
+        return;
+    }
+    const url = `http://localhost:3000/analysis?id=${encodeURIComponent(currentAnalysis.id)}`;
+    console.log('Opening detailed analysis URL:', url);
+    chrome.tabs.create({ url });
 }
 
 // Initialize popup

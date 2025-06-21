@@ -137,7 +137,32 @@ function handleAnalysisResponse(response) {
         return;
     }
     
+    // Check for specific error messages and show user-friendly errors
+    if (!response.success) {
+        let userFriendlyMessage = 'Analysis failed';
+        
+        // Handle common error cases
+        if (response.error) {
+            if (response.error.includes('Failed to fetch page')) {
+                userFriendlyMessage = 'Could not access this website. The site may be blocking automated access or requires authentication.';
+            } else if (response.error.includes('timeout')) {
+                userFriendlyMessage = 'The website took too long to respond. Try analyzing a different page.';
+            } else if (response.error.includes('403')) {
+                userFriendlyMessage = 'Access to this website was forbidden. The site may be blocking automated access.';
+            } else if (response.error.includes('404')) {
+                userFriendlyMessage = 'The page was not found. Please check the URL and try again.';
+            } else if (response.error.includes('Network')) {
+                userFriendlyMessage = 'Network error. Please check your internet connection and try again.';
+            }
+        }
+        
+        showError(userFriendlyMessage);
+        showResultsView();
+        return;
+    }
+    
     const data = response.data;
+    console.log('Setting currentAnalysis with data:', data);
     currentAnalysis = data;  // Store the analysis data
     
     // Update the UI with the analysis results
@@ -180,34 +205,49 @@ function updateUI(analysis) {
         `;
         
         viewMoreButton.addEventListener('click', () => {
-            // Ensure all required fields are present
+            // Ensure all required fields are present and limit data size
             const detailedAnalysis = {
-                ...analysis,
+                id: analysis.id || `temp-${Date.now()}`,
+                url: analysis.url || document.getElementById('currentUrl').textContent,
+                overall_score: analysis.overall_score || 0,
                 crawlability: {
-                    ...analysis.crawlability,
-                    issues: analysis.crawlability.issues || [],
-                    total_score: analysis.crawlability.total_score || 0
+                    total_score: analysis.crawlability?.total_score || 0,
+                    // Limit issues to reduce URL size
+                    issues: (analysis.crawlability?.issues || []).slice(0, 5).map(issue => ({
+                        severity: issue.severity || 'medium',
+                        message: issue.message || '',
+                        recommendation: issue.recommendation || ''
+                    }))
                 },
                 structured_data: {
-                    ...analysis.structured_data,
-                    issues: analysis.structured_data.issues || [],
-                    total_score: analysis.structured_data.total_score || 0,
-                    schema_types: analysis.structured_data.schema_types || []
+                    total_score: analysis.structured_data?.total_score || 0,
+                    issues: (analysis.structured_data?.issues || []).slice(0, 5).map(issue => ({
+                        severity: issue.severity || 'medium',
+                        message: issue.message || '',
+                        recommendation: issue.recommendation || ''
+                    }))
                 },
                 content_structure: {
-                    ...analysis.content_structure,
-                    issues: analysis.content_structure.issues || [],
-                    total_score: analysis.content_structure.total_score || 0
+                    total_score: analysis.content_structure?.total_score || 0,
+                    issues: (analysis.content_structure?.issues || []).slice(0, 5).map(issue => ({
+                        severity: issue.severity || 'medium',
+                        message: issue.message || '',
+                        recommendation: issue.recommendation || ''
+                    }))
                 },
                 eeat: {
-                    ...analysis.eeat,
-                    issues: analysis.eeat.issues || [],
-                    total_score: analysis.eeat.total_score || 0
+                    total_score: analysis.eeat?.total_score || 0,
+                    issues: (analysis.eeat?.issues || []).slice(0, 5).map(issue => ({
+                        severity: issue.severity || 'medium',
+                        message: issue.message || '',
+                        recommendation: issue.recommendation || ''
+                    }))
                 },
-                recommendations: analysis.recommendations || [],
+                recommendations: (analysis.recommendations || []).slice(0, 5), // Limit recommendations
                 timestamp: analysis.timestamp || new Date().toISOString()
             };
             
+            // Use URL parameter approach with reduced data size
             const websiteUrl = 'http://localhost:3000/analysis';
             const encodedData = encodeURIComponent(JSON.stringify(detailedAnalysis));
             window.open(`${websiteUrl}?data=${encodedData}`, '_blank');

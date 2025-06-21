@@ -1,14 +1,52 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import DashboardLayout from '../components/DashboardLayout';
 import AnalysisResults from './components/AnalysisResults';
 
 export default function AnalysisPage() {
   const [userName, setUserName] = useState<string>('User');
   const [activeTab, setActiveTab] = useState<'analysis' | 'recommendations'>('analysis');
+  const [analysisData, setAnalysisData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const analysisId = searchParams.get('id');
+  const encodedData = searchParams.get('data');
+  
+  console.log('AnalysisPage - URL analysisId:', analysisId);
+  console.log('AnalysisPage - URL has encoded data:', !!encodedData);
+
+  useEffect(() => {
+    // Handle direct data passed in URL
+    if (encodedData) {
+      try {
+        const decodedData = JSON.parse(decodeURIComponent(encodedData));
+        console.log('AnalysisPage - Decoded data from URL:', decodedData);
+        setAnalysisData(decodedData);
+        setLoading(false);
+        return; // Skip the redirect if we have data
+      } catch (error) {
+        console.error('Error parsing encoded analysis data:', error);
+        setError('Could not parse analysis data from URL. The data might be corrupted or too large.');
+        setLoading(false);
+      }
+    }
+
+    // Fall back to ID-based approach
+    if (analysisId) {
+      // We have an ID, so we'll let the AnalysisResults component handle the API call
+      setLoading(false);
+    } else {
+      console.warn('No analysis ID or data found in URL, redirecting to analyses page');
+      setError('No analysis data available');
+      setLoading(false);
+      // Uncomment to redirect automatically:
+      // router.push('/analyses');
+    }
+  }, [analysisId, encodedData, router]);
 
   useEffect(() => {
     const checkAuth = () => {
@@ -33,6 +71,32 @@ export default function AnalysisPage() {
 
     checkAuth();
   }, []);
+
+  if (loading) {
+    return (
+      <DashboardLayout userName={userName}>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (error && !analysisId && !analysisData) {
+    return (
+      <DashboardLayout userName={userName}>
+        <div className="flex flex-col items-center justify-center min-h-screen">
+          <div className="text-red-500 text-lg mb-4">{error}</div>
+          <button
+            onClick={() => router.push('/analyses')}
+            className="px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors"
+          >
+            Return to Analyses
+          </button>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout userName={userName}>
@@ -77,7 +141,11 @@ export default function AnalysisPage() {
           </div>
           
           <div className="p-6">
-            <AnalysisResults activeTab={activeTab} />
+            <AnalysisResults 
+              activeTab={activeTab} 
+              analysisId={analysisId || undefined} 
+              directData={analysisData} 
+            />
           </div>
         </div>
       </div>

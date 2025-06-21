@@ -169,27 +169,44 @@ export default function Settings() {
             </form>
           </div>
           
-          {/* Subscription Settings */}
+          {/* Beta Testing Status */}
           <div className="p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Subscription</h2>
-            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium text-gray-900">Free Plan</p>
-                  <p className="text-sm text-gray-600">5 analyses per month, 2 full views</p>
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Beta Testing Program</h2>
+            <div className="bg-indigo-50 rounded-lg p-6">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                 </div>
-                <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-                  Active
-                </span>
+                <div className="ml-3">
+                  <h3 className="text-lg font-medium text-indigo-800">Exclusive Beta Access</h3>
+                  <p className="mt-2 text-sm text-indigo-700">
+                    You are part of our exclusive beta testing program! As a beta tester, you have full access to all features and unlimited analyses. Your feedback helps us shape the future of AI content optimization.
+                  </p>
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center text-sm text-indigo-700">
+                      <svg className="h-5 w-5 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Unlimited content analyses
+                    </div>
+                    <div className="flex items-center text-sm text-indigo-700">
+                      <svg className="h-5 w-5 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Full access to all features
+                    </div>
+                    <div className="flex items-center text-sm text-indigo-700">
+                      <svg className="h-5 w-5 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Direct feedback channel to our team
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-            
-            <button
-              onClick={() => window.open('https://ampup.ai/pricing', '_blank')}
-              className="px-4 py-2 rounded-md bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium hover:shadow-lg transition-all"
-            >
-              Upgrade to Premium
-            </button>
           </div>
           
           {/* Danger Zone */}

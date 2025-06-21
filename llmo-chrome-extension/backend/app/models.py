@@ -22,6 +22,7 @@ from .db import Base
 class AnalysisRequest(BaseModel):
     url: str = Field(..., description="The URL to analyze")
     include_content: bool = Field(default=True)
+    anonymous_id: str = Field(..., description="The anonymous ID of the user")
 
 
 class CrawlabilityScore(BaseModel):
@@ -145,9 +146,11 @@ class UsageStatsResponse(BaseModel):
 
 
 class AnalyzeResponse(BaseModel):
+    id: str
     overall_score: float
     crawlability: Dict[str, Any]
     structured_data: Dict[str, Any]
     content_structure: Dict[str, Any]
     eeat: Dict[str, Any]
     recommendations: List[str] = Field(default_factory=list)
+    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())

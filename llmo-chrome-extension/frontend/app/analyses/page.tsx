@@ -29,6 +29,9 @@ export default function Analyses() {
       const token = localStorage.getItem('token');
       const userStr = localStorage.getItem('user');
       
+      console.log('Checking auth - Token exists:', !!token);
+      console.log('Checking auth - User data exists:', !!userStr);
+      
       if (!token || !userStr) {
         console.log('No token or user found, redirecting to signin');
         router.push('/auth/signin');
@@ -38,6 +41,7 @@ export default function Analyses() {
       try {
         // Validate user data
         const userData = JSON.parse(userStr);
+        console.log('User data:', userData);
         if (userData.name) {
           setUserName(userData.name);
         } else if (userData.email) {
@@ -58,6 +62,8 @@ export default function Analyses() {
         if (!checkAuth()) return;
 
         const token = localStorage.getItem('token');
+        console.log('Fetching analyses with token:', token ? 'Token exists' : 'No token');
+        
         const headers = {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -71,8 +77,11 @@ export default function Analyses() {
           credentials: 'include',
         });
         
+        console.log('Analyses response status:', analysesResponse.status);
+        
         if (!analysesResponse.ok) {
           const errorText = await analysesResponse.text();
+          console.error('Analyses fetch error:', errorText);
           
           if (analysesResponse.status === 401) {
             console.log('Unauthorized, clearing tokens and redirecting to login');
@@ -85,6 +94,7 @@ export default function Analyses() {
         }
 
         const analysesData = await analysesResponse.json();
+        console.log('Fetched analyses data:', analysesData);
         setAnalyses(analysesData);
         setError(null);
       } catch (error) {

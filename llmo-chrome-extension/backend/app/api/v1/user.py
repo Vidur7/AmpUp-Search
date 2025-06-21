@@ -18,12 +18,16 @@ async def get_user_analyses(
 ):
     """Get all analyses for a user"""
     try:
+        logger.info("Attempting to fetch user analyses")
+
         if not current_user:
             logger.error("No current user found in get_user_analyses")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Authentication required",
             )
+
+        logger.info(f"Current user found: {current_user.email}")
 
         if not current_user.anonymous_id:
             logger.error(f"User {current_user.email} has no anonymous_id")
@@ -43,6 +47,11 @@ async def get_user_analyses(
         )
 
         logger.info(f"Found {len(analyses)} analyses for user")
+
+        if len(analyses) == 0:
+            logger.info(
+                "No analyses found for user - this might be normal for new users"
+            )
 
         return [
             AnalysisResponse(

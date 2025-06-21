@@ -81,7 +81,7 @@ export default function Sidebar({ userName = 'User' }: SidebarProps) {
             </div>
             <div>
               <p className="font-medium text-gray-900">{userName}</p>
-              <p className="text-sm text-gray-500">Free Plan</p>
+              <p className="text-sm text-gray-500">Beta Tester</p>
             </div>
           </div>
         </div>

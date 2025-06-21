@@ -94,13 +94,25 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // Handle the analysis request
 async function handleAnalysis(url) {
     try {
+        // Get the anonymous ID from storage
+        const result = await chrome.storage.local.get(['anonId']);
+        const anonymousId = result.anonId;
+        
+        if (!anonymousId) {
+            throw new Error('No anonymous ID found. Please try again.');
+        }
+
         console.log('Making API request to:', `${LLMO_CONFIG.API.BASE_URL}/analyze`);
         const response = await fetch(`${LLMO_CONFIG.API.BASE_URL}/analyze`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ url }),
+            body: JSON.stringify({ 
+                url,
+                anonymous_id: anonymousId,
+                include_content: true
+            }),
         });
 
         if (!response.ok) {
