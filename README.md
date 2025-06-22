@@ -57,7 +57,12 @@ cd backend
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
+
+# Option 1: Using uvicorn directly
 uvicorn app.main:app --reload
+
+# Option 2: Using the startup script (if having issues)
+python start.py
 ```
 
 ### 3. Frontend Setup
@@ -76,9 +81,9 @@ npm run dev
 
 - **[Installation Guide](docs/INSTALLATION.md)** - Detailed setup instructions
 - **[API Documentation](docs/API.md)** - Backend API reference
-- **[Extension Development](docs/EXTENSION.md)** - Chrome extension development guide
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 - **[Contributing](docs/CONTRIBUTING.md)** - How to contribute to the project
-- **[Deployment](docs/DEPLOYMENT.md)** - Production deployment guide
+- **[Chrome Store Guide](CHROME_STORE_SUBMISSION_GUIDE.md)** - Extension publication guide
 
 ## 🛠️ Technology Stack
 
