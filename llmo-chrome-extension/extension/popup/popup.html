@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>AmpUp Optimization Auditor</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <div class="ampup-logo">
+                        <div class="triangle-up"></div>
+                        <div class="triangle-down"></div>
+                    </div>
+                </div>
+                <div class="logo-text">AmpUp Optimization Auditor</div>
+            </div>
+            <div class="url-display" id="currentUrl">
+                Analyzing current page...
+            </div>
+        </div>
+        
+        <div id="scanningView" class="scanning">
+            <div class="spinner"></div>
+            <div class="loading-text">Analyzing Page...</div>
+            <div class="loading-detail">Checking LLM optimization factors</div>
+        </div>
+        
+        <div id="resultsView" class="content" style="display: none;">
+            <div class="score-card">
+                <div class="score-circle">
+                    <div class="score-text">0</div>
+                </div>
+                <div class="score-label">AmpUp Optimization Auditor</div>
+                <div class="score-status">Analyzing...</div>
+            </div>
+            
+            <div class="analysis-sections">
+                <!-- Sections will be dynamically populated -->
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn btn-secondary" id="rescanBtn">Re-scan</button>
+                <button class="btn btn-primary" id="exportBtn">Export Report</button>
+            </div>
+        </div>
+    </div>
+    <script src="/config.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html> 
