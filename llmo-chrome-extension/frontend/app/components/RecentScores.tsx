@@ -34,16 +34,7 @@ export default function RecentScores({ analyses }: RecentScoresProps) {
     return 'Poor';
   };
 
-  const getRelativeTime = (timestamp: string) => {
-    const now = new Date();
-    const analysisDate = new Date(timestamp);
-    const diffInHours = (now.getTime() - analysisDate.getTime()) / (1000 * 60 * 60);
-    
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${Math.floor(diffInHours)}h ago`;
-    if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
-    return analysisDate.toLocaleDateString();
-  };
+
   
   return (
     <div className="bg-white rounded-lg shadow p-6">
@@ -75,9 +66,6 @@ export default function RecentScores({ analyses }: RecentScoresProps) {
                       'bg-red-100 text-red-800'
                     }`}>
                       {getScoreLabel(analysis.overall_score)}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {getRelativeTime(analysis.timestamp)}
                     </span>
                   </div>
                 </div>
