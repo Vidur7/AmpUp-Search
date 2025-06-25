@@ -1,12 +1,71 @@
 // State management
 let currentAnalysis = null;
 
+// Sync anonymous ID from dashboard
+async function syncAnonIdFromDashboard() {
+    try {
+        // Send message to background script to handle the sync
+        return new Promise((resolve) => {
+            const timeoutId = setTimeout(() => {
+                console.warn("⚠️ Timeout waiting for anonymous ID sync");
+                resolve(null);
+            }, 5000); // 5 second timeout
+            
+            chrome.runtime.sendMessage({ action: 'getOrCreateAnonymousId' }, (response) => {
+                clearTimeout(timeoutId);
+                if (chrome.runtime.lastError) {
+                    console.warn("⚠️ Error syncing anonymous ID:", chrome.runtime.lastError);
+                    resolve(null);
+                    return;
+                }
+                
+                if (response && response.anonId) {
+                    console.log("📦 Current anon ID:", response.anonId);
+                    resolve(response.anonId);
+                } else {
+                    console.warn("⚠️ No anonymous ID received from background");
+                    resolve(null);
+                }
+            });
+        });
+    } catch (err) {
+        console.warn("⚠️ Could not sync anon ID from dashboard:", err.message);
+        return null;
+    }
+}
+
 // Initialize the popup
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log("🔄 Popup opened. Syncing anon ID...");
+    
+    // Make sure LLMO_CONFIG is available
+    if (typeof LLMO_CONFIG === 'undefined') {
+        console.warn('LLMO_CONFIG not available, requesting from background');
+        
+        // Request config from background script
+        chrome.runtime.sendMessage({ action: 'getConfig' }, (response) => {
+            if (response && response.config) {
+                window.LLMO_CONFIG = response.config;
+                console.log('Configuration loaded from background:', LLMO_CONFIG);
+                initializePopup();
+            } else {
+                console.error('Failed to load configuration');
+                showError('Failed to load configuration. Please reload the extension.');
+            }
+        });
+    } else {
+        console.log('LLMO_CONFIG already available:', LLMO_CONFIG);
+        initializePopup();
+    }
+});
+
+// Initialize popup after config is loaded
+async function initializePopup() {
+    await syncAnonIdFromDashboard();
     await getCurrentTab();
     setupEventListeners();
     startAnalysis();
-});
+}
 
 // Get the current tab information
 async function getCurrentTab() {
@@ -110,23 +169,43 @@ async function startAnalysis(force = false) {
         
         // Send message to content script to analyze the page
         chrome.tabs.sendMessage(tab.id, { action: 'analyze' }, (response) => {
-            console.log('Received response in popup:', response);
-            
+            // Check for runtime errors first
             if (chrome.runtime.lastError) {
+                const errorMessage = chrome.runtime.lastError.message || 'Unknown content script error';
+                console.error('Content script error:', errorMessage);
+                
+                // Only inject content.js to avoid duplicate LLMO_CONFIG declarations
+                console.log('Injecting content script only');
+                
                 // If content script is not injected, inject it
                 chrome.scripting.executeScript({
                     target: { tabId: tab.id },
-                    files: ['config.js', 'content.js']
+                    files: ['content.js']  // Only inject content.js
                 }).then(() => {
-                    // Retry the analysis after injection
-                    chrome.tabs.sendMessage(tab.id, { action: 'analyze' }, handleAnalysisResponse);
+                    console.log('Content script injected, retrying analysis');
+                    // Wait a moment for the script to initialize
+                    setTimeout(() => {
+                        chrome.tabs.sendMessage(tab.id, { action: 'analyze' }, (retryResponse) => {
+                            if (chrome.runtime.lastError) {
+                                const retryErrorMessage = chrome.runtime.lastError.message || 'Unknown retry error';
+                                console.error('Retry failed:', retryErrorMessage);
+                                showError('Could not initialize analysis. Please refresh the page and try again.');
+                                showResultsView();
+                                return;
+                            }
+                            handleAnalysisResponse(retryResponse);
+                        });
+                    }, 500);
                 }).catch(error => {
-                    console.error('Script injection error:', error);
+                    const errorMessage = error.message || error.toString();
+                    console.error('Script injection error:', errorMessage);
                     showError('Could not initialize analysis. Please refresh and try again.');
                     showResultsView();
                 });
                 return;
             }
+            
+            console.log('Received response in popup:', response);
             
             if (!response) {
                 showError('No response received from the analysis.');
@@ -423,8 +502,19 @@ function showError(message, duration = 5000) {
     }
 }
 
-// Show a notification
-function showNotification(message, type = LLMO_CONFIG.NOTIFICATION_TYPES.INFO, duration = 3000) {
+// Show notification
+function showNotification(message, type, duration = 3000) {
+    // Define default notification types if LLMO_CONFIG is not available
+    const NOTIFICATION_TYPES = LLMO_CONFIG?.NOTIFICATION_TYPES || {
+        SUCCESS: 'success',
+        ERROR: 'error',
+        INFO: 'info',
+        WARNING: 'warning'
+    };
+    
+    // Use the provided type or default to INFO
+    type = type || NOTIFICATION_TYPES.INFO;
+    
     // Remove any existing notifications
     const existingNotifications = document.querySelectorAll('.notification');
     existingNotifications.forEach(notification => notification.remove());
@@ -434,25 +524,25 @@ function showNotification(message, type = LLMO_CONFIG.NOTIFICATION_TYPES.INFO, d
     
     // Style based on notification type
     const notificationStyles = {
-        [LLMO_CONFIG.NOTIFICATION_TYPES.SUCCESS]: {
+        [NOTIFICATION_TYPES.SUCCESS]: {
             background: '#10b981',
             border: '1px solid #059669'
         },
-        [LLMO_CONFIG.NOTIFICATION_TYPES.ERROR]: {
+        [NOTIFICATION_TYPES.ERROR]: {
             background: '#ef4444',
             border: '1px solid #dc2626'
         },
-        [LLMO_CONFIG.NOTIFICATION_TYPES.WARNING]: {
+        [NOTIFICATION_TYPES.WARNING]: {
             background: '#f59e0b',
             border: '1px solid #d97706'
         },
-        [LLMO_CONFIG.NOTIFICATION_TYPES.INFO]: {
+        [NOTIFICATION_TYPES.INFO]: {
             background: '#3b82f6',
             border: '1px solid #2563eb'
         }
     };
     
-    const currentStyle = notificationStyles[type] || notificationStyles[LLMO_CONFIG.NOTIFICATION_TYPES.INFO];
+    const currentStyle = notificationStyles[type] || notificationStyles[NOTIFICATION_TYPES.INFO];
     
     notification.style.cssText = `
         position: fixed;
@@ -474,10 +564,10 @@ function showNotification(message, type = LLMO_CONFIG.NOTIFICATION_TYPES.INFO, d
     
     // Add icon based on type
     const icons = {
-        [LLMO_CONFIG.NOTIFICATION_TYPES.SUCCESS]: '✓',
-        [LLMO_CONFIG.NOTIFICATION_TYPES.ERROR]: '✕',
-        [LLMO_CONFIG.NOTIFICATION_TYPES.WARNING]: '⚠',
-        [LLMO_CONFIG.NOTIFICATION_TYPES.INFO]: 'ℹ'
+        [NOTIFICATION_TYPES.SUCCESS]: '✓',
+        [NOTIFICATION_TYPES.ERROR]: '✕',
+        [NOTIFICATION_TYPES.WARNING]: '⚠',
+        [NOTIFICATION_TYPES.INFO]: 'ℹ'
     };
     
     notification.innerHTML = `
@@ -576,5 +666,5 @@ function showRestrictedUrlMessage(url) {
     if (scoreLabel) scoreLabel.textContent = 'Cannot Analyze';
     
     // Show notification
-    showNotification('This page type cannot be analyzed. Try a public website instead.', LLMO_CONFIG.NOTIFICATION_TYPES.WARNING, 4000);
+    showNotification('This page type cannot be analyzed. Try a public website instead.', NOTIFICATION_TYPES.WARNING, 4000);
 } 

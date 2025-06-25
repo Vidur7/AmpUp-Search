@@ -6,11 +6,13 @@
     "permissions": [
         "activeTab",
         "storage",
-        "scripting"
+        "scripting",
+        "tabs"
     ],
     "host_permissions": [
         "http://127.0.0.1:8000/*",
         "http://localhost:8000/*",
+        "http://localhost:3000/*",
         "http://*/*",
         "https://*/*"
     ],
@@ -35,6 +37,12 @@
             "matches": ["<all_urls>"],
             "js": ["config.js", "content.js"],
             "run_at": "document_idle"
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": ["config.js", "content.js"],
+            "matches": ["<all_urls>"]
         }
     ]
 } 

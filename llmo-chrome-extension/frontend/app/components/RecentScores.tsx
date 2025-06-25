@@ -1,3 +1,4 @@
+import React from 'react';
 import { useRouter } from 'next/navigation';
 
 interface Analysis {
@@ -57,29 +58,29 @@ export default function RecentScores({ analyses }: RecentScoresProps) {
       
       {recentAnalyses.length > 0 ? (
         <div className="space-y-3">
-          {recentAnalyses.map((analysis) => (
+                     {recentAnalyses.map((analysis) => (
             <div 
               key={analysis.id} 
               className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
               onClick={() => router.push(`/analysis?id=${analysis.id}`)}
             >
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
-                  {new URL(analysis.url).hostname}
-                </p>
-                <div className="flex items-center space-x-2">
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    analysis.overall_score >= 80 ? 'bg-green-100 text-green-800' :
-                    analysis.overall_score >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {getScoreLabel(analysis.overall_score)}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {getRelativeTime(analysis.timestamp)}
-                  </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {new URL(analysis.url).hostname}
+                  </p>
+                  <div className="flex items-center space-x-2">
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      analysis.overall_score >= 80 ? 'bg-green-100 text-green-800' :
+                      analysis.overall_score >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {getScoreLabel(analysis.overall_score)}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {getRelativeTime(analysis.timestamp)}
+                    </span>
+                  </div>
                 </div>
-              </div>
               <div className="ml-4 flex-shrink-0">
                 <span 
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getScoreColor(analysis.overall_score)}`}

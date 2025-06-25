@@ -2,21 +2,48 @@
 let LLMO_CONFIG = null;
 
 // Initialize configuration
-chrome.runtime.sendMessage({ action: 'getConfig' }, response => {
-    if (response && response.config) {
-        LLMO_CONFIG = response.config;
-        console.log('Configuration loaded:', LLMO_CONFIG);
-    } else {
-        console.error('Failed to load configuration');
+function initializeConfig() {
+    // If LLMO_CONFIG is already globally available, use it
+    if (typeof window.LLMO_CONFIG !== 'undefined') {
+        console.log('Using globally available LLMO_CONFIG');
+        LLMO_CONFIG = window.LLMO_CONFIG;
+        
+        // Initialize cache now that we have the config
+        initializeCache();
+        return;
     }
-});
+    
+    // Otherwise, request it from the background script
+    chrome.runtime.sendMessage({ action: 'getConfig' }, response => {
+        if (response && response.config) {
+            LLMO_CONFIG = response.config;
+            console.log('Configuration loaded:', LLMO_CONFIG);
+            
+            // Initialize cache after config is loaded
+            initializeCache();
+        } else {
+            console.error('Failed to load configuration');
+        }
+    });
+}
 
-if (typeof window.LLMO_CACHE === 'undefined') {
-    window.LLMO_CACHE = new Map();
+// Initialize cache
+function initializeCache() {
+    if (typeof window.LLMO_CACHE === 'undefined') {
+        window.LLMO_CACHE = new Map();
+    }
+    
+    // Clear old cache entries now that we have the config
+    clearOldCacheEntries();
 }
 
 // Function to clear old cache entries
 function clearOldCacheEntries() {
+    if (!LLMO_CONFIG) {
+        console.warn('Cannot clear cache: Configuration not loaded yet');
+        return;
+    }
+    
     const now = Date.now();
     for (const [url, data] of window.LLMO_CACHE.entries()) {
         if (now - data.timestamp > LLMO_CONFIG.CACHE.DURATION) {
@@ -25,6 +52,9 @@ function clearOldCacheEntries() {
     }
 }
 
+// Initialize the configuration
+initializeConfig();
+
 // Listen for messages from the popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Content script received message:', request);
@@ -32,12 +62,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'analyze') {
         console.log('Content script received analyze request');
         
-        // Check if we have a cached result
-        const cachedResult = window.LLMO_CACHE.get(window.location.href);
-        if (cachedResult && Date.now() - cachedResult.timestamp < LLMO_CONFIG.CACHE.DURATION) {
-            console.log('Using cached result');
-            sendResponse(cachedResult.data);
-            return true;
+        // Check if we have a cached result (only if config is loaded)
+        if (LLMO_CONFIG && window.LLMO_CACHE) {
+            const cachedResult = window.LLMO_CACHE.get(window.location.href);
+            if (cachedResult && Date.now() - cachedResult.timestamp < LLMO_CONFIG.CACHE.DURATION) {
+                console.log('Using cached result');
+                sendResponse(cachedResult.data);
+                return true;
+            }
         }
         
         // Forward the analysis request to the background script
@@ -47,6 +79,38 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 url: window.location.href
             },
             response => {
+                // Check for chrome runtime errors first
+                if (chrome.runtime.lastError) {
+                    console.error('Chrome runtime error:', chrome.runtime.lastError.message);
+                    sendResponse({ 
+                        success: false, 
+                        error: `Connection error: ${chrome.runtime.lastError.message}`,
+                        data: {
+                            url: window.location.href,
+                            overall_score: 0,
+                            crawlability: {
+                                total_score: 0,
+                                issues: [`Connection error: ${chrome.runtime.lastError.message}`]
+                            },
+                            structured_data: {
+                                total_score: 0,
+                                issues: [`Connection error: ${chrome.runtime.lastError.message}`]
+                            },
+                            content_structure: {
+                                total_score: 0,
+                                issues: [`Connection error: ${chrome.runtime.lastError.message}`]
+                            },
+                            eeat: {
+                                total_score: 0,
+                                issues: [`Connection error: ${chrome.runtime.lastError.message}`]
+                            },
+                            recommendations: ['The background script is not responding. Please try refreshing the extension.'],
+                            timestamp: new Date().toISOString()
+                        }
+                    });
+                    return;
+                }
+                
                 console.log('Received response from background:', response);
                 
                 // Handle error cases
@@ -81,8 +145,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     return;
                 }
                 
-                // Cache successful results
-                if (response.success && response.data) {
+                // Cache successful results (only if config is loaded)
+                if (response.success && response.data && LLMO_CONFIG && window.LLMO_CACHE) {
                     window.LLMO_CACHE.set(window.location.href, {
                         data: response,
                         timestamp: Date.now()

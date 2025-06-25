@@ -1,20 +1,26 @@
-// LLMO Configuration Namespace
-(function(global) {
-    global.LLMO_CONFIG = {
+// Configuration for LLMO Chrome Extension
+// Check if LLMO_CONFIG is already defined to prevent duplicate declarations
+if (typeof LLMO_CONFIG === 'undefined') {
+    // Use let instead of const to allow global assignment
+    let LLMO_CONFIG = {
         API: {
-            BASE_URL: 'http://localhost:8000',
+            BASE_URL: 'http://localhost:8000/api/v1',
             TIMEOUT: 15000, // 15 seconds in milliseconds
+            ENDPOINTS: {
+                ANALYZE: '/analyze',
+                ANONYMOUS_ID: '/user/anonymous-id'
+            }
         },
         
         CACHE: {
-            DURATION: 1000 * 60 * 30, // 30 minutes in milliseconds
+            DURATION: 5 * 60 * 1000 // 5 minutes in milliseconds
         },
         
         NOTIFICATION_TYPES: {
-            ERROR: 'error',
             SUCCESS: 'success',
-            WARNING: 'warning',
+            ERROR: 'error',
             INFO: 'info',
+            WARNING: 'warning'
         },
         
         SCORE_RANGES: {
@@ -74,4 +80,32 @@
             },
         }
     };
-})(typeof window !== 'undefined' ? window : self); 
+
+    // Ensure global availability in all contexts
+    if (typeof globalThis !== 'undefined') {
+        globalThis.LLMO_CONFIG = LLMO_CONFIG;
+    }
+    
+    // Export for Node.js environments (if needed)
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = { LLMO_CONFIG };
+    }
+
+    // Make available globally for browser environments
+    if (typeof window !== 'undefined') {
+        window.LLMO_CONFIG = LLMO_CONFIG;
+    }
+
+    // Make available for Web Workers and Service Workers
+    if (typeof self !== 'undefined' && self !== window) {
+        self.LLMO_CONFIG = LLMO_CONFIG;
+    }
+    
+    // For Chrome extension contexts
+    if (typeof chrome !== 'undefined') {
+        // Make it available globally
+        if (typeof self !== 'undefined') {
+            self.LLMO_CONFIG = LLMO_CONFIG;
+        }
+    }
+} 

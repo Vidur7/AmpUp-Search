@@ -3,7 +3,8 @@ const LLMO_CONFIG = {
     API: {
         BASE_URL: 'http://localhost:8000/api/v1',
         ENDPOINTS: {
-            ANALYZE: '/analyze'
+            ANALYZE: '/analyze',
+            ANONYMOUS_ID: '/user/anonymous-id'
         }
     },
     
@@ -12,20 +13,145 @@ const LLMO_CONFIG = {
     }
 };
 
-// Generate and manage anonymous ID for usage tracking
-async function getOrCreateAnonymousId() {
+// LLMO Chrome Extension Background Script
+console.log('🚀 Background script starting...');
+
+// Verify config is loaded
+if (typeof LLMO_CONFIG === 'undefined') {
+    console.error('❌ LLMO_CONFIG not available! Extension may not work properly.');
+} else {
+    console.log('✅ LLMO_CONFIG loaded successfully:', LLMO_CONFIG.API.BASE_URL);
+}
+
+// Cache management configuration
+
+// Generate and manage anonymous ID locally (always for guests)
+async function getOrCreateAnonymousIdLocally() {
     const result = await chrome.storage.local.get(['anonId']);
     if (result.anonId) {
         return result.anonId;
     }
-    
-    // Generate new UUID
     const uuid = crypto.randomUUID();
     await chrome.storage.local.set({ anonId: uuid });
     return uuid;
 }
 
+// Get effective anonymous ID (dashboard override if logged in, otherwise local)
+async function getEffectiveAnonymousId() {
+    console.log('🎬 getEffectiveAnonymousId: Starting anonymous ID resolution...');
+    
+    try {
+        // Try to get token from dashboard if it's open
+        const dashboardToken = await getDashboardToken();
+        
+        if (dashboardToken) {
+            console.log('🔍 Found dashboard token, attempting to get user anonymous ID...');
+            const res = await fetch(`${LLMO_CONFIG.API.BASE_URL}${LLMO_CONFIG.API.ENDPOINTS.ANONYMOUS_ID}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${dashboardToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
 
+            console.log('🔍 API response status:', res.status);
+            
+            if (res.ok) {
+                const responseData = await res.json();
+                console.log('🔍 API response data:', responseData);
+                const { anonymous_id } = responseData;
+                if (anonymous_id && anonymous_id !== 'YOUR_ACCOUNT_ID') {
+                    console.log('✅ Using logged-in user\'s anonymous ID:', anonymous_id);
+                    return anonymous_id;
+                } else {
+                    console.warn('🔍 API returned invalid anonymous_id:', anonymous_id);
+                }
+            } else {
+                const errorText = await res.text();
+                console.warn('❌ Failed to fetch user anonymous ID with token:', res.status, errorText);
+            }
+        } else {
+            console.log('🔍 No dashboard token found, using local anonymous ID');
+        }
+    } catch (err) {
+        console.warn('🔌 Error fetching dashboard anonymous ID:', err.message);
+    }
+
+    // Fallback to local anonymous ID
+    const localId = await getOrCreateAnonymousIdLocally();
+    console.log('📍 Using local anonymous ID:', localId);
+    return localId;
+}
+
+// Get dashboard token from open tabs
+async function getDashboardToken() {
+    try {
+        console.log('🔍 getDashboardToken: Starting token search...');
+        
+        // Check if we have permission to access tabs
+        const tabs = await chrome.tabs.query({url: 'http://localhost:3000/*'});
+        console.log(`🔍 getDashboardToken: Found ${tabs.length} dashboard tabs:`, tabs.map(t => ({id: t.id, url: t.url, title: t.title})));
+        
+        for (const tab of tabs) {
+            try {
+                console.log(`🔍 getDashboardToken: Trying to inject script into tab ${tab.id} (${tab.url})`);
+                
+                // Inject script to get token from localStorage
+                const results = await chrome.scripting.executeScript({
+                    target: { tabId: tab.id },
+                    func: () => {
+                        try {
+                            const token = localStorage.getItem('token');
+                            const user = localStorage.getItem('user');
+                            console.log('🔍 Content script: localStorage token exists:', !!token);
+                            console.log('🔍 Content script: localStorage user exists:', !!user);
+                            if (token) {
+                                console.log('🔍 Content script: Token starts with:', token.substring(0, 20) + '...');
+                            }
+                            return {
+                                token: token,
+                                user: user,
+                                url: window.location.href
+                            };
+                        } catch (e) {
+                            console.error('🔍 Content script error:', e);
+                            return { error: e.message };
+                        }
+                    }
+                });
+                
+                console.log('🔍 getDashboardToken: Script execution results:', results);
+                
+                if (results && results[0] && results[0].result) {
+                    const result = results[0].result;
+                    if (result.error) {
+                        console.warn(`🔍 getDashboardToken: Content script error in tab ${tab.id}:`, result.error);
+                    } else if (result.token) {
+                        console.log('🎯 getDashboardToken: Found dashboard token from tab:', tab.id);
+                        console.log('🎯 getDashboardToken: Token preview:', result.token.substring(0, 20) + '...');
+                        console.log('🎯 getDashboardToken: User data exists:', !!result.user);
+                        return result.token;
+                    } else {
+                        console.log(`📍 getDashboardToken: No token in tab ${tab.id} localStorage`);
+                    }
+                }
+            } catch (scriptError) {
+                console.warn('Failed to inject script into tab:', tab.id, scriptError.message);
+            }
+        }
+        
+        console.log('🔍 getDashboardToken: No token found in any dashboard tabs');
+    } catch (error) {
+        console.warn('Failed to query dashboard tabs:', error.message);
+    }
+    
+    return null;
+}
+
+// Legacy function for backward compatibility - now just calls getEffectiveAnonymousId
+async function getOrCreateAnonymousId() {
+    return await getEffectiveAnonymousId();
+}
 
 // Analyze URL with timeout and error handling
 async function analyzeUrl(url, anonId) {
@@ -41,11 +167,11 @@ async function analyzeUrl(url, anonId) {
         const response = await fetch(`${LLMO_CONFIG.API.BASE_URL}${LLMO_CONFIG.API.ENDPOINTS.ANALYZE}`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-Anonymous-ID': anonId
             },
             body: JSON.stringify({ 
                 url: cleanUrl,
-                anonymous_id: anonId,
                 include_content: true
             }),
             signal: controller.signal
@@ -138,38 +264,94 @@ async function analyzeUrlWithRetry(url, anonId, maxRetries = 1) {
 
 // Initialize extension
 chrome.runtime.onInstalled.addListener(async () => {
-    console.log('Extension installed/updated');
-    // Ensure we have an anonymous ID
-    const anonId = await getOrCreateAnonymousId();
-    console.log('Anonymous ID:', anonId);
+    console.log('🔄 Extension installed/updated. Initializing background script...');
+    try {
+        // Ensure we have an anonymous ID, synced from dashboard if possible
+        const anonId = await getOrCreateAnonymousId();
+        console.log('✅ Background script initialized with anonymous ID:', anonId);
+    } catch (error) {
+        console.error('❌ Error initializing background script:', error);
+    }
+});
+
+// Add startup logging
+chrome.runtime.onStartup.addListener(() => {
+    console.log('🚀 Extension startup - background script starting');
 });
 
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    console.log('Background script received message:', request);
+    console.log('📨 Background script received message:', request, 'from sender:', sender);
 
     if (request.action === 'getConfig') {
         console.log('Sending config response');
-        sendResponse({ config: LLMO_CONFIG });
+        // Make sure we include all the necessary configuration
+        sendResponse({ 
+            config: {
+                API: LLMO_CONFIG.API,
+                CACHE: LLMO_CONFIG.CACHE,
+                NOTIFICATION_TYPES: {
+                    SUCCESS: 'success',
+                    ERROR: 'error',
+                    INFO: 'info',
+                    WARNING: 'warning'
+                }
+            } 
+        });
         return true;
     }
     
-
+    if (request.action === 'getOrCreateAnonymousId') {
+        getOrCreateAnonymousId().then(anonId => {
+            sendResponse({ anonId: anonId });
+        });
+        return true; // Indicate async response
+    }
+    
+    if (request.action === 'clearAnonId') {
+        chrome.storage.local.remove('anonId', () => {
+            console.log('🧹 Cleared anonymous ID on logout');
+        });
+        sendResponse({ success: true });
+        return true;
+    }
     
     if (request.action === 'analyze') {
         console.log('Background script received analyze request for:', request.url);
         
+        // Check if LLMO_CONFIG is available
+        if (!LLMO_CONFIG) {
+            console.error('❌ LLMO_CONFIG not available in background script');
+            sendResponse({
+                success: false,
+                error: 'Configuration not loaded',
+                data: {
+                    url: request.url,
+                    overall_score: 0,
+                    crawlability: { total_score: 0, issues: ['Configuration not loaded'] },
+                    structured_data: { total_score: 0, issues: ['Configuration not loaded'] },
+                    content_structure: { total_score: 0, issues: ['Configuration not loaded'] },
+                    eeat: { total_score: 0, issues: ['Configuration not loaded'] },
+                    recommendations: ['Configuration not loaded. Please refresh the extension.'],
+                    timestamp: new Date().toISOString()
+                }
+            });
+            return true;
+        }
+        
         // Get the anonymous ID first
         getOrCreateAnonymousId().then(anonId => {
+            console.log('🔥 ANALYSIS: Using anonymous ID:', anonId);
+            
             // Make the API request
             fetch(`${LLMO_CONFIG.API.BASE_URL}${LLMO_CONFIG.API.ENDPOINTS.ANALYZE}`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-Anonymous-ID': anonId
                 },
                 body: JSON.stringify({ 
                     url: request.url,
-                    anonymous_id: anonId,
                     include_content: true
                 })
             })

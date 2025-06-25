@@ -223,15 +223,43 @@ class LLMOAnalyzer:
 
             try:
                 logger.info(f"Parsing HTML for {self.url}")
-                self.soup = BeautifulSoup(result, "lxml")
+
+                # Try multiple parsers with fallbacks
+                try:
+                    self.soup = BeautifulSoup(result, "lxml")
+                except Exception as e:
+                    logger.warning(f"lxml parser failed: {e}, trying html.parser")
+                    try:
+                        self.soup = BeautifulSoup(result, "html.parser")
+                    except Exception as e:
+                        logger.warning(f"html.parser failed: {e}, trying html5lib")
+                        self.soup = BeautifulSoup(result, "html5lib")
+
                 if not self.soup:
                     raise Exception("Failed to parse HTML: BeautifulSoup returned None")
 
-                self.text_content = self.soup.get_text()
-                if not self.text_content:
-                    raise Exception("Failed to extract text content from page")
+                # Get text content with fallback
+                try:
+                    self.text_content = self.soup.get_text()
+                except Exception as e:
+                    logger.warning(
+                        f"get_text() failed: {e}, trying alternative text extraction"
+                    )
+                    # Alternative text extraction
+                    self.text_content = " ".join(
+                        [text.strip() for text in self.soup.stripped_strings]
+                    )
 
-                logger.info(f"Successfully parsed HTML for {self.url}")
+                if not self.text_content or len(self.text_content.strip()) == 0:
+                    # Last resort - try to get any text from the raw HTML
+                    self.text_content = (
+                        result[:1000] if result else "No content available"
+                    )
+                    logger.warning("Using fallback text content extraction")
+
+                logger.info(
+                    f"Successfully parsed HTML for {self.url}, text content length: {len(self.text_content)}"
+                )
             except Exception as e:
                 error_msg = f"Failed to parse HTML: {str(e)}"
                 logger.error(error_msg, exc_info=True)

@@ -1,9 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { v4 as uuidv4 } from 'uuid';
+
+// Chrome extension types
+declare global {
+  interface Window {
+    chrome?: {
+      storage: {
+        local: {
+          get: (keys: string[]) => Promise<{[key: string]: any}>;
+          set: (items: {[key: string]: any}) => Promise<void>;
+        };
+      };
+    };
+  }
+}
 
 const API_BASE_URL = 'http://localhost:8000/api/v1';
 
@@ -21,9 +35,9 @@ export default function SignUp() {
     const getAnonymousId = async () => {
       try {
         // PRIORITY 1: Check if we're in Chrome extension environment
-        if (typeof chrome !== 'undefined' && chrome.storage) {
+        if (typeof window !== 'undefined' && window.chrome?.storage) {
           try {
-            const result = await chrome.storage.local.get(['anonId']);
+            const result = await window.chrome.storage.local.get(['anonId']);
             if (result.anonId) {
               console.log('Using Chrome extension anonymous_id:', result.anonId);
               setAnonymousId(result.anonId);
@@ -100,40 +114,23 @@ export default function SignUp() {
 
       const signupResult = await signupResponse.json();
       
+      // Signup now returns JWT token directly! Store it immediately
+      console.log('Signup successful with JWT token received');
+      localStorage.setItem('token', signupResult.access_token);
+      localStorage.setItem('user', JSON.stringify(signupResult.user));
+      
       // Update extension's anonymous_id if the backend assigned a different one
       if (signupResult.user && signupResult.user.anonymous_id !== anonymousId) {
         console.log(`Backend assigned different anonymous_id: ${signupResult.user.anonymous_id}, updating extension`);
-        if (typeof chrome !== 'undefined' && chrome.storage) {
+        if (typeof window !== 'undefined' && window.chrome?.storage) {
           try {
-            await chrome.storage.local.set({ anonId: signupResult.user.anonymous_id });
+            await window.chrome.storage.local.set({ anonId: signupResult.user.anonymous_id });
             console.log('Extension anonymous_id updated successfully');
           } catch (error) {
             console.warn('Could not update extension anonymous_id:', error);
           }
         }
       }
-
-      // Sign in request
-      const formData = new URLSearchParams();
-      formData.append('username', email);
-      formData.append('password', password);
-
-      const signInResponse = await fetch(`${API_BASE_URL}/auth/signin`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formData,
-        credentials: 'include',
-      });
-
-      if (!signInResponse.ok) {
-        throw new Error('Failed to sign in after account creation');
-      }
-
-      const signInData = await signInResponse.json();
-      localStorage.setItem('token', signInData.access_token);
-      localStorage.setItem('user', JSON.stringify(signInData.user));
 
       router.push('/dashboard');
     } catch (err) {

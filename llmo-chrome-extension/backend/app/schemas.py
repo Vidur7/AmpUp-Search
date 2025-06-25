@@ -1,11 +1,11 @@
-from pydantic import BaseModel, EmailStr, HttpUrl
+from pydantic import BaseModel, HttpUrl
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 from uuid import UUID
 
 
 class UserBase(BaseModel):
-    email: EmailStr
+    email: str
     anonymous_id: str
     is_premium: bool = False
 
@@ -69,7 +69,7 @@ class TokenData(BaseModel):
 
 class AnalysisRequest(BaseModel):
     url: HttpUrl
-    anonymous_id: str
+    anonymous_id: Optional[str] = None
     include_content: Optional[bool] = True
 
 

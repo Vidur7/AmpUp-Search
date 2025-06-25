@@ -129,11 +129,25 @@ async def link_extension(
 
 
 @router.post("/analyze")
-async def analyze_webpage_real(request: AnalysisRequest, db: Session = Depends(get_db)):
+async def analyze_webpage_real(
+    request: AnalysisRequest,
+    db: Session = Depends(get_db),
+    x_anonymous_id: Optional[str] = Header(None, alias="X-Anonymous-ID"),
+):
     """Real analyze endpoint using LLMOAnalyzer"""
     logger.info(f"Real analyze called for URL: {request.url}")
 
     try:
+        # Get anonymous_id from header first, fallback to request body for backward compatibility
+        anonymous_id = x_anonymous_id or getattr(request, "anonymous_id", None)
+
+        if not anonymous_id:
+            return {
+                "success": False,
+                "error": "Missing anonymous ID",
+                "message": "Anonymous ID must be provided in X-Anonymous-ID header",
+            }
+
         # Validate URL
         if not str(request.url).startswith(("http://", "https://")):
             return {
@@ -144,15 +158,20 @@ async def analyze_webpage_real(request: AnalysisRequest, db: Session = Depends(g
 
         # Initialize and run real analyzer
         try:
+            logger.info(
+                f"Starting analysis for URL: {request.url} with anonymous_id: {anonymous_id}"
+            )
             analyzer = LLMOAnalyzer(str(request.url))
             result = await analyzer.analyze_page()
             logger.info(f"Analysis completed for {request.url}")
         except Exception as e:
-            logger.error(f"Analysis failed: {str(e)}", exc_info=True)
+            logger.error(
+                f"Analysis failed for URL {request.url}: {str(e)}", exc_info=True
+            )
             return {
                 "success": False,
                 "error": "Analysis failed",
-                "message": f"Analysis failed: {str(e)}",
+                "message": f"Analysis failed for {request.url}: {str(e)}",
             }
 
         # Check if analysis was successful
@@ -181,7 +200,7 @@ async def analyze_webpage_real(request: AnalysisRequest, db: Session = Depends(g
         # Save to database
         analysis = Analysis(
             id=analysis_id,
-            anonymous_id=request.anonymous_id,
+            anonymous_id=anonymous_id,
             url=str(request.url),
             overall_score=float(overall_score),
             crawlability=crawlability,
@@ -196,13 +215,13 @@ async def analyze_webpage_real(request: AnalysisRequest, db: Session = Depends(g
         # Update usage tracking
         usage = (
             db.query(AnonymousUsage)
-            .filter(AnonymousUsage.anonymous_id == request.anonymous_id)
+            .filter(AnonymousUsage.anonymous_id == anonymous_id)
             .first()
         )
 
         if not usage:
             usage = AnonymousUsage(
-                anonymous_id=request.anonymous_id,
+                anonymous_id=anonymous_id,
                 analysis_count=1,
                 full_views_used=0,
             )
@@ -329,13 +348,26 @@ async def signup(request: SignupRequest, db: Session = Depends(get_db)):
             f"User created successfully: {user.email} with anonymous_id: {user.anonymous_id}"
         )
 
+        # Generate JWT token for the new user
+        from app.services.auth import create_access_token
+        from datetime import timedelta
+        from app.config import settings
+
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.email}, expires_delta=access_token_expires
+        )
+
+        logger.info(f"Generated JWT token for new user: {user.email}")
+
         return {
-            "message": "User created successfully",
+            "access_token": access_token,
+            "token_type": "bearer",
             "user": {
-                "id": user.id,
+                "id": str(user.id),
                 "email": user.email,
                 "anonymous_id": user.anonymous_id,
-                "name": request.name or user.email.split("@")[0],
+                "is_premium": user.is_premium if hasattr(user, "is_premium") else False,
             },
         }
     except HTTPException:
@@ -363,17 +395,24 @@ async def signin(
         if user.hashed_password != hashed_password:
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
-        # Generate simple token (in production use JWT)
-        token = f"user_{user.id}_{uuid.uuid4()}"
+        # Generate JWT token
+        from app.services.auth import create_access_token
+        from datetime import timedelta
+        from app.config import settings
+
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.email}, expires_delta=access_token_expires
+        )
 
         return {
-            "access_token": token,
+            "access_token": access_token,
             "token_type": "bearer",
             "user": {
-                "id": user.id,
+                "id": str(user.id),
                 "email": user.email,
                 "anonymous_id": user.anonymous_id,
-                "name": user.email.split("@")[0],  # Use email prefix as name
+                "is_premium": user.is_premium if hasattr(user, "is_premium") else False,
             },
         }
     except HTTPException:
@@ -399,17 +438,24 @@ async def signin_json(request: SigninRequest, db: Session = Depends(get_db)):
         if user.hashed_password != hashed_password:
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
-        # Generate simple token (in production use JWT)
-        token = f"user_{user.id}_{uuid.uuid4()}"
+        # Generate JWT token
+        from app.services.auth import create_access_token
+        from datetime import timedelta
+        from app.config import settings
+
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.email}, expires_delta=access_token_expires
+        )
 
         return {
-            "access_token": token,
+            "access_token": access_token,
             "token_type": "bearer",
             "user": {
-                "id": user.id,
+                "id": str(user.id),
                 "email": user.email,
                 "anonymous_id": user.anonymous_id,
-                "name": user.email.split("@")[0],  # Use email prefix as name
+                "is_premium": user.is_premium if hasattr(user, "is_premium") else False,
             },
         }
     except HTTPException:

@@ -21,6 +21,18 @@ export default function Sidebar({ userName = 'User' }: SidebarProps) {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    
+    // Clear the anonymous ID in the extension if it's available
+    if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+      try {
+        chrome.runtime.sendMessage({ action: 'clearAnonId' }, (response) => {
+          console.log('🧹 Cleared anonymous ID on logout:', response);
+        });
+      } catch (err) {
+        console.warn('⚠️ Could not clear anonymous ID:', err);
+      }
+    }
+    
     router.push('/auth/signin');
   };
 
