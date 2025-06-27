@@ -1,30 +1,50 @@
 // Cache management
 let LLMO_CONFIG = null;
+let configLoadPromise = null;
 
-// Initialize configuration
+// Initialize configuration with proper error handling
 function initializeConfig() {
-    // If LLMO_CONFIG is already globally available, use it
-    if (typeof window.LLMO_CONFIG !== 'undefined') {
-        console.log('Using globally available LLMO_CONFIG');
-        LLMO_CONFIG = window.LLMO_CONFIG;
-        
-        // Initialize cache now that we have the config
-        initializeCache();
-        return;
+    if (configLoadPromise) {
+        return configLoadPromise;
     }
-    
-    // Otherwise, request it from the background script
-    chrome.runtime.sendMessage({ action: 'getConfig' }, response => {
-        if (response && response.config) {
-            LLMO_CONFIG = response.config;
-            console.log('Configuration loaded:', LLMO_CONFIG);
-            
-            // Initialize cache after config is loaded
+
+    configLoadPromise = new Promise((resolve, reject) => {
+        // If LLMO_CONFIG is already globally available, use it
+        if (typeof window.LLMO_CONFIG !== 'undefined') {
+            console.log('Using globally available LLMO_CONFIG');
+            LLMO_CONFIG = window.LLMO_CONFIG;
             initializeCache();
-        } else {
-            console.error('Failed to load configuration');
+            resolve(LLMO_CONFIG);
+            return;
+        }
+        
+        // Otherwise, request it from the background script
+        try {
+            chrome.runtime.sendMessage({ action: 'getConfig' }, response => {
+                if (chrome.runtime.lastError) {
+                    const errorMessage = chrome.runtime.lastError.message || 'Unknown runtime error';
+                    console.error('Error requesting config:', errorMessage);
+                    reject(new Error(errorMessage));
+                    return;
+                }
+                
+                if (response && response.config) {
+                    LLMO_CONFIG = response.config;
+                    console.log('Configuration loaded:', LLMO_CONFIG);
+                    initializeCache();
+                    resolve(LLMO_CONFIG);
+                } else {
+                    console.error('Failed to load configuration');
+                    reject(new Error('Failed to load configuration'));
+                }
+            });
+        } catch (error) {
+            console.error('Exception while requesting config:', error);
+            reject(error);
         }
     });
+
+    return configLoadPromise;
 }
 
 // Initialize cache
@@ -53,110 +73,211 @@ function clearOldCacheEntries() {
 }
 
 // Initialize the configuration
-initializeConfig();
+console.log('Content script starting initialization...');
+initializeConfig().then(() => {
+    console.log('Content script initialization complete');
+}).catch(error => {
+    console.error('Content script initialization failed:', error);
+});
+
+// Add global error handler
+window.addEventListener('error', (event) => {
+    console.error('Content script error:', event.error || event.message || 'Unknown error');
+    
+    // Prevent the null error from propagating
+    if (event.error === null || event.message === 'Script error.') {
+        event.preventDefault();
+        return false;
+    }
+});
+
+// Add unhandled promise rejection handler
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('Unhandled promise rejection in content script:', event.reason);
+    event.preventDefault();
+});
+
+// Ensure content script is marked as ready
+console.log('Content script loaded and ready for messages');
 
 // Listen for messages from the popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    console.log('Content script received message:', request);
+    try {
+        console.log('Content script received message:', request);
+        
+        // Validate request object
+        if (!request || typeof request !== 'object') {
+            console.error('Invalid request object received:', request);
+            sendResponse({ success: false, error: 'Invalid request' });
+            return true;
+        }
+        
+        if (request.action === 'ping') {
+            // Simple ping to check if content script is ready
+            sendResponse({ success: true, ready: true });
+            return true;
+        }
     
     if (request.action === 'analyze') {
         console.log('Content script received analyze request');
         
-        // Check if we have a cached result (only if config is loaded)
-        if (LLMO_CONFIG && window.LLMO_CACHE) {
-            const cachedResult = window.LLMO_CACHE.get(window.location.href);
-            if (cachedResult && Date.now() - cachedResult.timestamp < LLMO_CONFIG.CACHE.DURATION) {
-                console.log('Using cached result');
-                sendResponse(cachedResult.data);
-                return true;
-            }
-        }
-        
-        // Forward the analysis request to the background script
-        chrome.runtime.sendMessage(
-            { 
-                action: 'analyze',
-                url: window.location.href
-            },
-            response => {
-                // Check for chrome runtime errors first
-                if (chrome.runtime.lastError) {
-                    console.error('Chrome runtime error:', chrome.runtime.lastError.message);
-                    sendResponse({ 
-                        success: false, 
-                        error: `Connection error: ${chrome.runtime.lastError.message}`,
-                        data: {
-                            url: window.location.href,
-                            overall_score: 0,
-                            crawlability: {
-                                total_score: 0,
-                                issues: [`Connection error: ${chrome.runtime.lastError.message}`]
-                            },
-                            structured_data: {
-                                total_score: 0,
-                                issues: [`Connection error: ${chrome.runtime.lastError.message}`]
-                            },
-                            content_structure: {
-                                total_score: 0,
-                                issues: [`Connection error: ${chrome.runtime.lastError.message}`]
-                            },
-                            eeat: {
-                                total_score: 0,
-                                issues: [`Connection error: ${chrome.runtime.lastError.message}`]
-                            },
-                            recommendations: ['The background script is not responding. Please try refreshing the extension.'],
-                            timestamp: new Date().toISOString()
-                        }
-                    });
+        // Ensure config is loaded before proceeding
+        initializeConfig().then(() => {
+            // Check if we have a cached result (only if config is loaded)
+            if (LLMO_CONFIG && window.LLMO_CACHE) {
+                const cachedResult = window.LLMO_CACHE.get(window.location.href);
+                if (cachedResult && Date.now() - cachedResult.timestamp < LLMO_CONFIG.CACHE.DURATION) {
+                    console.log('Using cached result');
+                    sendResponse(cachedResult.data);
                     return;
                 }
-                
-                console.log('Received response from background:', response);
-                
-                // Handle error cases
-                if (!response) {
-                    console.error('No response from background script');
-                    sendResponse({ 
-                        success: false, 
-                        error: 'No response from analysis service',
-                        data: {
-                            url: window.location.href,
-                            overall_score: 0,
-                            crawlability: {
-                                total_score: 0,
-                                issues: ['No response from analysis service']
-                            },
-                            structured_data: {
-                                total_score: 0,
-                                issues: ['No response from analysis service']
-                            },
-                            content_structure: {
-                                total_score: 0,
-                                issues: ['No response from analysis service']
-                            },
-                            eeat: {
-                                total_score: 0,
-                                issues: ['No response from analysis service']
-                            },
-                            recommendations: ['The analysis service is not responding. Please try again later.'],
-                            timestamp: new Date().toISOString()
-                        }
-                    });
-                    return;
-                }
-                
-                // Cache successful results (only if config is loaded)
-                if (response.success && response.data && LLMO_CONFIG && window.LLMO_CACHE) {
-                    window.LLMO_CACHE.set(window.location.href, {
-                        data: response,
-                        timestamp: Date.now()
-                    });
-                }
-                
-                // Send the response back to the popup
-                sendResponse(response);
             }
-        );
+            
+            // Forward the analysis request to the background script
+            try {
+                chrome.runtime.sendMessage(
+                    { 
+                        action: 'analyze',
+                        url: window.location.href
+                    },
+                    response => {
+                        // Check for chrome runtime errors first
+                        if (chrome.runtime.lastError) {
+                            const errorMessage = chrome.runtime.lastError.message || 'Unknown runtime error';
+                            console.error('Chrome runtime error:', errorMessage);
+                            sendResponse({ 
+                                success: false, 
+                                error: `Connection error: ${errorMessage}`,
+                                data: {
+                                    url: window.location.href,
+                                    overall_score: 0,
+                                    crawlability: {
+                                        total_score: 0,
+                                        issues: [`Connection error: ${errorMessage}`]
+                                    },
+                                    structured_data: {
+                                        total_score: 0,
+                                        issues: [`Connection error: ${errorMessage}`]
+                                    },
+                                    content_structure: {
+                                        total_score: 0,
+                                        issues: [`Connection error: ${errorMessage}`]
+                                    },
+                                    eeat: {
+                                        total_score: 0,
+                                        issues: [`Connection error: ${errorMessage}`]
+                                    },
+                                    recommendations: ['The background script is not responding. Please try refreshing the extension.'],
+                                    timestamp: new Date().toISOString()
+                                }
+                            });
+                            return;
+                        }
+                        
+                        console.log('Received response from background:', response);
+                        
+                        // Handle error cases
+                        if (!response) {
+                            console.error('No response from background script');
+                            sendResponse({ 
+                                success: false, 
+                                error: 'No response from analysis service',
+                                data: {
+                                    url: window.location.href,
+                                    overall_score: 0,
+                                    crawlability: {
+                                        total_score: 0,
+                                        issues: ['No response from analysis service']
+                                    },
+                                    structured_data: {
+                                        total_score: 0,
+                                        issues: ['No response from analysis service']
+                                    },
+                                    content_structure: {
+                                        total_score: 0,
+                                        issues: ['No response from analysis service']
+                                    },
+                                    eeat: {
+                                        total_score: 0,
+                                        issues: ['No response from analysis service']
+                                    },
+                                    recommendations: ['The analysis service is not responding. Please try again later.'],
+                                    timestamp: new Date().toISOString()
+                                }
+                            });
+                            return;
+                        }
+                        
+                        // Cache successful results (only if config is loaded)
+                        if (response.success && response.data && LLMO_CONFIG && window.LLMO_CACHE) {
+                            window.LLMO_CACHE.set(window.location.href, {
+                                data: response,
+                                timestamp: Date.now()
+                            });
+                        }
+                        
+                        // Send the response back to the popup
+                        sendResponse(response);
+                    }
+                );
+            } catch (error) {
+                console.error('Exception sending message to background:', error);
+                sendResponse({ 
+                    success: false, 
+                    error: `Exception: ${error.message}`,
+                    data: {
+                        url: window.location.href,
+                        overall_score: 0,
+                        crawlability: {
+                            total_score: 0,
+                            issues: [`Exception: ${error.message}`]
+                        },
+                        structured_data: {
+                            total_score: 0,
+                            issues: [`Exception: ${error.message}`]
+                        },
+                        content_structure: {
+                            total_score: 0,
+                            issues: [`Exception: ${error.message}`]
+                        },
+                        eeat: {
+                            total_score: 0,
+                            issues: [`Exception: ${error.message}`]
+                        },
+                        recommendations: [`Exception: ${error.message}`],
+                        timestamp: new Date().toISOString()
+                    }
+                });
+            }
+        }).catch(error => {
+            console.error('Failed to initialize config:', error);
+            sendResponse({ 
+                success: false, 
+                error: `Config initialization failed: ${error.message}`,
+                data: {
+                    url: window.location.href,
+                    overall_score: 0,
+                    crawlability: {
+                        total_score: 0,
+                        issues: [`Config initialization failed: ${error.message}`]
+                    },
+                    structured_data: {
+                        total_score: 0,
+                        issues: [`Config initialization failed: ${error.message}`]
+                    },
+                    content_structure: {
+                        total_score: 0,
+                        issues: [`Config initialization failed: ${error.message}`]
+                    },
+                    eeat: {
+                        total_score: 0,
+                        issues: [`Config initialization failed: ${error.message}`]
+                    },
+                    recommendations: [`Config initialization failed: ${error.message}`],
+                    timestamp: new Date().toISOString()
+                }
+            });
+        });
         
         // Return true to indicate we will send response asynchronously
         return true;
@@ -191,6 +312,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
     });
     return true;
+    } catch (error) {
+        console.error('Error in message listener:', error);
+        sendResponse({ success: false, error: 'Content script error: ' + (error.message || 'Unknown error') });
+        return true;
+    }
 });
 
 // Validate analysis data structure

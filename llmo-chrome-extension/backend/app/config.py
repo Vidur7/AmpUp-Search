@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic import BaseSettings
 from functools import lru_cache
 import os
 from dotenv import load_dotenv
@@ -42,7 +42,8 @@ class Settings(BaseSettings):
     content_structure_weight: float = 0.25
     eeat_weight: float = 0.25
 
-    model_config = {"env_file": ".env"}
+    class Config:
+        env_file = ".env"
 
 
 @lru_cache()

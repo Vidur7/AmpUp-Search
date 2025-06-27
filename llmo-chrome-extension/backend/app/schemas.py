@@ -1,17 +1,45 @@
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, EmailStr, validator, Field
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 from uuid import UUID
+import re
 
 
 class UserBase(BaseModel):
-    email: str
+    email: EmailStr
     anonymous_id: str
     is_premium: bool = False
 
 
 class UserCreate(UserBase):
-    password: str
+    password: str = Field(
+        ..., min_length=6, description="Password must be at least 6 characters long"
+    )
+
+    @validator("password")
+    def validate_password(cls, v):
+        if len(v) < 6:
+            raise ValueError("Password must be at least 6 characters long")
+
+        if not re.search(r"[A-Za-z]", v):
+            raise ValueError("Password must contain at least one letter")
+
+        if not re.search(r"[0-9]", v):
+            raise ValueError("Password must contain at least one number")
+
+        return v
+
+    @validator("email")
+    def validate_email(cls, v):
+        # Additional email validation beyond EmailStr
+        if not v or len(v.strip()) == 0:
+            raise ValueError("Email is required")
+
+        # Check for common invalid patterns
+        if ".." in v or v.startswith(".") or v.endswith("."):
+            raise ValueError("Invalid email format")
+
+        return v.lower().strip()
 
 
 class UserResponse(UserBase):
