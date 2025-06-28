@@ -75,19 +75,25 @@ except Exception as e:
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
 # Configure CORS
+origins = [
+    "http://localhost:3000",  # Local development
+    "https://ampup-search-frontend-kiycau3cf-vidurs-projects-aca5b1b2.vercel.app",  # Production Vercel
+    "https://ampup-search-frontend.vercel.app",  # Future custom domain
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
 )
 
 # Log CORS settings
 logger.info("Starting application with CORS settings:")
-logger.info("Allowed origins: *")
+logger.info(f"Allowed origins: {origins}")
 logger.info("CORS credentials allowed: True")
-logger.info("All methods and headers allowed")
+logger.info("Allowed methods: GET, POST, PUT, DELETE, OPTIONS")
 
 # Constants
 FREE_ANALYSIS_LIMIT = 5
