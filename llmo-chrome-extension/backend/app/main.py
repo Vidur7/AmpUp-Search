@@ -77,7 +77,8 @@ app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 # Configure CORS
 origins = [
     "http://localhost:3000",  # Local development
-    "https://ampup-search-frontend-kiycau3cf-vidurs-projects-aca5b1b2.vercel.app",  # Production Vercel
+    "https://ampup-search-frontend-kiycau3cf-vidurs-projects-aca5b1b2.vercel.app",  # Previous Production Vercel
+    "https://ampup-search-frontend-h67597kvv-vidurs-projects-aca5b1b2.vercel.app",  # Latest Production Vercel
     "https://ampup-search-frontend.vercel.app",  # Future custom domain
 ]
 
