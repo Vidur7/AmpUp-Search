@@ -17,7 +17,7 @@ It features a **Chrome Extension**, **FastAPI backend**, and **Next.js dashboard
 
 ## 🎥 Demo
 
-[▶️ Watch Demo Video]([https://your-demo-link.com](https://drive.google.com/file/d/1E659mhwP7LIdX9ExvSEBObpreQUGJ1CF/view?usp=sharing)
+[▶️ Watch Demo Video](https://drive.google.com/file/d/1E659mhwP7LIdX9ExvSEBObpreQUGJ1CF/view?usp=sharing)
 
 ---
 
